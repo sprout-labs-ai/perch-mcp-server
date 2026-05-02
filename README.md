@@ -4,14 +4,17 @@ Model Context Protocol server for [Perch](https://perch.app). Connects Perch to 
 
 ## Status
 
-**Phase 1.7 (current):** local stdio transport, PAT authentication, two read-only tools.
+**Phase 2.0 (current):** local stdio transport, PAT authentication, five read-only tools.
 
 | Tool | Description |
 |---|---|
 | `list_accounts` | Your Perch accounts with current balances |
-| `list_recurring_series` | The recurring payments and income on a given account |
+| `list_recurring_series` | The recurring payments and income on a given account (templates) |
+| `list_scheduled_items` | Materialized upcoming items on an account, with concrete dates and override-aware amounts |
+| `get_forecast_curve` | Server-computed running balance projection over a window — chart-ready time series |
+| `simulate_forecast` | What-if: re-run the projection with hypothetical items merged in (read-only, never persisted) |
 
-More tools (`list_scheduled_items`, `get_forecast_curve`, `simulate_forecast`) ship in Phase 2.0 once the supporting perch-api endpoints land.
+Phase 2.0c will add Auth0 OAuth (device-code flow + OS keychain) and a remote HTTP transport for ChatGPT compatibility.
 
 ## Install
 

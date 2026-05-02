@@ -53,3 +53,59 @@ const FREQUENCY_LABELS: Record<number, Frequency> = {
 export function frequencyLabel(frequency: number): Frequency | 'unknown' {
   return FREQUENCY_LABELS[frequency] ?? 'unknown';
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/v1/scheduled-items
+
+export interface ScheduledItem {
+  seriesId: string;
+  occursOn: string;            // YYYY-MM-DD
+  amount: string;              // signed decimal string
+  description: string;
+  direction: 'income' | 'expense' | 'transfer' | 'refund';
+  frequency: Frequency;
+  isPaid: boolean;
+  isRescheduled: boolean;
+}
+
+export interface ScheduledItemsResponse {
+  accountId: string;
+  from: string;
+  to: string;
+  items: ScheduledItem[];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/v1/forecast/curve  +  POST /api/v1/forecast/simulate
+
+export type Granularity = 'daily' | 'event';
+
+export interface ForecastEvent {
+  seriesId: string;
+  amount: string;       // signed decimal string
+  description: string;
+}
+
+export interface ForecastPoint {
+  date: string;             // YYYY-MM-DD
+  projectedBalance: string; // signed decimal string, end-of-day
+  events: ForecastEvent[];
+}
+
+export interface ForecastCurveResponse {
+  accountId: string;
+  startingBalance: string;
+  startingAt: string;
+  granularity: Granularity;
+  points: ForecastPoint[];
+}
+
+export interface ForecastSimulateResponse extends ForecastCurveResponse {
+  appliedHypotheticals: number;
+}
+
+export interface HypotheticalItem {
+  occursOn: string;       // YYYY-MM-DD
+  amount: string;         // signed decimal string, e.g. "-500.00"
+  description: string;
+}

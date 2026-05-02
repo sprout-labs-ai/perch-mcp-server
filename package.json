@@ -1,6 +1,6 @@
 {
   "name": "@perch/mcp-server",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Model Context Protocol server for Perch — bring your finances into Claude / ChatGPT / any MCP client.",
   "type": "module",
   "bin": {

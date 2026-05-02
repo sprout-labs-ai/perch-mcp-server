@@ -45,20 +45,30 @@ export class PerchClient {
         if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
       }
     }
+    return this.request<T>('GET', url, undefined);
+  }
 
+  async post<T>(path: string, body: unknown): Promise<T> {
+    const url = new URL(this.config.baseUrl + path);
+    return this.request<T>('POST', url, body);
+  }
+
+  private async request<T>(method: 'GET' | 'POST', url: URL, body: unknown): Promise<T> {
     const res = await fetch(url, {
-      method: 'GET',
+      method,
       headers: {
         Authorization: `Bearer ${this.config.token}`,
         Accept: 'application/json',
         'User-Agent': 'perch-mcp-server/0.1.0',
+        ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
       },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
     });
 
     if (!res.ok) {
-      const body = await res.text();
+      const text = await res.text();
       let parsed: { error?: string; code?: string; message?: string } | null = null;
-      try { parsed = JSON.parse(body); } catch { /* non-JSON body */ }
+      try { parsed = JSON.parse(text); } catch { /* non-JSON body */ }
 
       // Translate the auth-layer error codes our middleware produces into
       // actionable messages — the LLM and the user benefit from specifics.
@@ -75,13 +85,13 @@ export class PerchClient {
         }
       }
       if (res.status === 403 && parsed?.code === 'INSUFFICIENT_SCOPE') {
-        throw new PerchApiError(403, parsed.code, `Token is missing the scope required for ${path}. Re-issue with broader scopes.`);
+        throw new PerchApiError(403, parsed.code, `Token is missing the scope required for ${url.pathname}. Re-issue with broader scopes.`);
       }
 
       throw new PerchApiError(
         res.status,
         parsed?.code,
-        parsed?.message || parsed?.error || `Perch API ${res.status} on ${path}`,
+        parsed?.message || parsed?.error || `Perch API ${res.status} on ${url.pathname}`,
       );
     }
 

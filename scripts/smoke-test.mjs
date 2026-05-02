@@ -1,6 +1,7 @@
 /**
  * Drives the MCP server with a synthetic JSON-RPC client over stdio.
- * Verifies: initialize → tools/list → tools/call(list_accounts) → tools/call(list_recurring_series).
+ * Verifies the full v0.2 tool surface end-to-end:
+ *   initialize → tools/list → tools/call for each of the 5 tools → an error path.
  *
  * Run: PERCH_API_URL=http://localhost:3000 PERCH_API_TOKEN=pat_… node scripts/smoke-test.mjs
  */
@@ -62,8 +63,15 @@ async function run() {
   const tools = await send('tools/list', {});
   const names = tools.result.tools.map((t) => t.name);
   console.log('✓ tools/list →', names.join(', '));
-  if (!names.includes('list_accounts') || !names.includes('list_recurring_series')) {
-    throw new Error('expected tools missing');
+  const expected = [
+    'list_accounts',
+    'list_recurring_series',
+    'list_scheduled_items',
+    'get_forecast_curve',
+    'simulate_forecast',
+  ];
+  for (const e of expected) {
+    if (!names.includes(e)) throw new Error(`expected tool missing: ${e}`);
   }
 
   // 3. tools/call list_accounts
@@ -92,9 +100,61 @@ async function run() {
   const seriesParsed = JSON.parse(seriesText);
   console.log(`✓ list_recurring_series(${accountId}) → ${seriesParsed.count} active series`);
 
-  // 5. error path: invalid accountId
+  // 5. tools/call list_scheduled_items
+  const sched = await send('tools/call', {
+    name: 'list_scheduled_items',
+    arguments: { accountId },
+  });
+  const schedText = sched.result?.content?.[0]?.text;
+  if (!schedText) throw new Error('list_scheduled_items returned no text content');
+  const schedParsed = JSON.parse(schedText);
+  console.log(
+    `✓ list_scheduled_items(${accountId}) → ${schedParsed.count} item(s) in ${schedParsed.window.from}..${schedParsed.window.to}, net ${schedParsed.netForWindow}`,
+  );
+
+  // 6. tools/call get_forecast_curve (event granularity for terser output)
+  const curve = await send('tools/call', {
+    name: 'get_forecast_curve',
+    arguments: { accountId, days: 30, granularity: 'event' },
+  });
+  const curveText = curve.result?.content?.[0]?.text;
+  if (!curveText) throw new Error('get_forecast_curve returned no text content');
+  const curveParsed = JSON.parse(curveText);
+  console.log(
+    `✓ get_forecast_curve(${accountId}, 30d) → start ${curveParsed.startingBalance} → end ${curveParsed.endBalance} (${curveParsed.points.length} points, ${curveParsed.eventCount} events)`,
+  );
+
+  // 7. tools/call simulate_forecast (with a -$500 hypothetical mid-window)
+  const future = new Date();
+  future.setUTCDate(future.getUTCDate() + 14);
+  const hypoDate = future.toISOString().slice(0, 10);
+  const sim = await send('tools/call', {
+    name: 'simulate_forecast',
+    arguments: {
+      accountId,
+      days: 30,
+      granularity: 'event',
+      hypotheticalItems: [
+        { occursOn: hypoDate, amount: '-500.00', description: 'Smoke test surprise expense' },
+      ],
+    },
+  });
+  const simText = sim.result?.content?.[0]?.text;
+  if (!simText) throw new Error('simulate_forecast returned no text content');
+  const simParsed = JSON.parse(simText);
+  console.log(
+    `✓ simulate_forecast → end ${simParsed.endBalance} (vs baseline ${curveParsed.endBalance}, applied ${simParsed.appliedHypotheticals})`,
+  );
+  const baselineEnd = parseFloat(curveParsed.endBalance);
+  const simEnd = parseFloat(simParsed.endBalance);
+  if (Math.abs((baselineEnd - simEnd) - 500) > 0.01) {
+    throw new Error(`simulate impact off: expected -500 difference, got ${(baselineEnd - simEnd).toFixed(2)}`);
+  }
+  console.log('  └─ impact matches: -$500 hypothetical reduced end balance by exactly $500');
+
+  // 8. error path: invalid accountId on the new tools
   const errCall = await send('tools/call', {
-    name: 'list_recurring_series',
+    name: 'list_scheduled_items',
     arguments: { accountId: '00000000-0000-0000-0000-000000000000' },
   });
   if (errCall.result?.isError) {
