@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { perchClient } from '../api/client.js';
+import { clientFor } from '../api/client.js';
 import type { ScheduledItemsResponse } from '../api/types.js';
 
 export function registerListScheduledItems(server: McpServer): void {
@@ -42,8 +42,8 @@ export function registerListScheduledItems(server: McpServer): void {
           .describe('Maximum items returned. Defaults to 100, max 500.'),
       },
     },
-    async ({ accountId, from, to, limit }) => {
-      const data = await perchClient.get<ScheduledItemsResponse>(
+    async ({ accountId, from, to, limit }, extra) => {
+      const data = await clientFor(extra).get<ScheduledItemsResponse>(
         '/api/v1/scheduled-items',
         { accountId, from, to, limit },
       );

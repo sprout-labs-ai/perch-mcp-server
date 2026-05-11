@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { perchClient } from '../api/client.js';
+import { clientFor } from '../api/client.js';
 import type { ForecastCurveResponse } from '../api/types.js';
 
 export function registerGetForecastCurve(server: McpServer): void {
@@ -37,8 +37,8 @@ export function registerGetForecastCurve(server: McpServer): void {
           .describe('"daily" for plot-ready contiguous points, "event" for sparse table-friendly output. Default "daily".'),
       },
     },
-    async ({ accountId, days, granularity }) => {
-      const data = await perchClient.get<ForecastCurveResponse>(
+    async ({ accountId, days, granularity }, extra) => {
+      const data = await clientFor(extra).get<ForecastCurveResponse>(
         '/api/v1/forecast/curve',
         { accountId, days, granularity },
       );

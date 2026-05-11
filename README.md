@@ -4,7 +4,7 @@ Model Context Protocol server for [Perch](https://perch.app). Connects Perch to 
 
 ## Status
 
-**Phase 2.0 (current):** local stdio transport, PAT authentication, five read-only tools.
+**v0.3 (current):** five read-only tools + two transports.
 
 | Tool | Description |
 |---|---|
@@ -14,7 +14,10 @@ Model Context Protocol server for [Perch](https://perch.app). Connects Perch to 
 | `get_forecast_curve` | Server-computed running balance projection over a window — chart-ready time series |
 | `simulate_forecast` | What-if: re-run the projection with hypothetical items merged in (read-only, never persisted) |
 
-Phase 2.0c will add Auth0 OAuth (device-code flow + OS keychain) and a remote HTTP transport for ChatGPT compatibility.
+| Transport | Auth | Use when |
+|---|---|---|
+| **stdio** (default) | PAT (`PERCH_API_TOKEN` env) | Local install via Claude Desktop / Cursor / Zed / Claude Code |
+| **HTTP** (`--http`) | Auth0 OAuth 2.1 (Bearer) | Hosting at `mcp.theperch.app` for ChatGPT and any remote-only MCP client |
 
 ## Install
 
@@ -59,16 +62,56 @@ This server reads from Perch's API on your behalf. It does not:
 
 The AI client (Claude/ChatGPT/etc.) processes the responses according to its own data policy.
 
+## HTTP transport (Auth0 OAuth)
+
+For remote hosting (e.g., `https://mcp.theperch.app` for ChatGPT
+compatibility) the server runs in HTTP mode and accepts Auth0-issued
+access tokens audience'd to the MCP server.
+
+```bash
+AUTH0_DOMAIN=perch.us.auth0.com \
+AUTH0_MCP_AUDIENCE=https://mcp.theperch.app \
+PERCH_MCP_PUBLIC_URL=https://mcp.theperch.app \
+PERCH_API_URL=https://api.perch.app \
+PORT=3001 \
+node dist/index.js --http
+```
+
+Endpoints exposed:
+
+| Path | Auth | What |
+|---|---|---|
+| `GET /health` | none | Liveness probe |
+| `GET /.well-known/oauth-protected-resource` | none | RFC 9728 metadata pointing MCP clients at the Auth0 tenant |
+| `POST /mcp` | Bearer (Auth0 JWT for the MCP audience) | MCP JSON-RPC endpoint, stateless |
+
+When a request arrives without a valid token, the server emits the
+spec-compliant `WWW-Authenticate: Bearer error="invalid_token", resource_metadata="…"`
+header so MCP clients can discover the auth server and start the OAuth
+flow.
+
+Inbound JWTs are forwarded verbatim to perch-api as the `Authorization`
+header — perch-api accepts the same audience via its `AUTH0_MCP_AUDIENCE`
+configuration. No token exchange round-trip per request.
+
 ## Local development
 
 ```bash
 git clone https://github.com/sprout-labs-ai/perch-mcp-server.git
 cd perch-mcp-server
 npm install
+
+# stdio mode (default), against a local perch-api
 PERCH_API_URL=http://localhost:3000 PERCH_API_TOKEN=pat_… npm run dev
+
+# HTTP mode, also against a local perch-api
+AUTH0_DOMAIN=… AUTH0_MCP_AUDIENCE=https://mcp.theperch.app \
+  PORT=3401 PERCH_API_URL=http://localhost:3000 \
+  npm run dev -- --http
 ```
 
-Point Claude Desktop at the dev server by replacing the `command`/`args` above with:
+Point Claude Desktop at the dev build (stdio mode) by replacing the
+`command`/`args` above with:
 
 ```json
 "command": "node",

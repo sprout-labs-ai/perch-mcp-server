@@ -1,6 +1,6 @@
 {
   "name": "@perch/mcp-server",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Model Context Protocol server for Perch — bring your finances into Claude / ChatGPT / any MCP client.",
   "type": "module",
   "bin": {
@@ -36,9 +36,14 @@
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "jwks-rsa": "^4.0.1",
     "zod": "^3.25.0"
   },
   "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20.0.0",
     "tsx": "^4.0.0",
     "typescript": "^5.5.0",

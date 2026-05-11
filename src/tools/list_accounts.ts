@@ -1,5 +1,5 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { perchClient } from '../api/client.js';
+import { clientFor } from '../api/client.js';
 import type { Account } from '../api/types.js';
 
 export function registerListAccounts(server: McpServer): void {
@@ -14,8 +14,8 @@ export function registerListAccounts(server: McpServer): void {
         'Read-only.',
       inputSchema: {},
     },
-    async () => {
-      const accounts = await perchClient.get<Account[]>('/api/v1/accounts');
+    async (_args, extra) => {
+      const accounts = await clientFor(extra).get<Account[]>('/api/v1/accounts');
       const summary = {
         accounts: accounts.map((a) => ({
           id: a.id,

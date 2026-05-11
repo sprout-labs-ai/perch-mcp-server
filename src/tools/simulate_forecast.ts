@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { perchClient } from '../api/client.js';
+import { clientFor } from '../api/client.js';
 import type { ForecastSimulateResponse, HypotheticalItem } from '../api/types.js';
 
 export function registerSimulateForecast(server: McpServer): void {
@@ -56,8 +56,8 @@ export function registerSimulateForecast(server: McpServer): void {
           .describe('Non-empty list of hypothetical items to merge into the projection. Up to 50.'),
       },
     },
-    async ({ accountId, days, granularity, hypotheticalItems }) => {
-      const data = await perchClient.post<ForecastSimulateResponse>(
+    async ({ accountId, days, granularity, hypotheticalItems }, extra) => {
+      const data = await clientFor(extra).post<ForecastSimulateResponse>(
         '/api/v1/forecast/simulate',
         { accountId, days, granularity, hypotheticalItems },
       );
