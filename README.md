@@ -64,6 +64,10 @@ PATs cannot perform admin actions and cannot create or revoke other tokens.
 
 ## Admin tools (machine-to-machine)
 
+> **Design + how to add a scope:** see the cross-repo handoff doc in perch-api —
+> [`docs/api-handoff-m2m-mcp-admin-auth.md`](https://github.com/sprout-labs-ai/perch-api/blob/staging/docs/api-handoff-m2m-mcp-admin-auth.md)
+> (As-built + "Adding a scope" recipe). That's the source of truth for the whole M2M system.
+
 The five `admin_*` tools authenticate against perch-api with a **server-side
 client credential**, not the calling user's identity. They are intended for a
 dedicated operator instance (e.g. Claude Code on a maintainer's machine), never
