@@ -24,6 +24,7 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { requireBearerAuth } from '@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth.js';
 import { Auth0Verifier } from '../auth/auth0Verifier.js';
 import { buildServer } from '../server.js';
+import { MCP_RESOURCE_SCOPES } from '../auth/scopes.js';
 
 export interface StartHttpOptions {
   port: number;
@@ -58,7 +59,13 @@ export async function startHttp(opts: StartHttpOptions): Promise<void> {
     res.json({
       resource: opts.audience,
       authorization_servers: [`https://${opts.auth0Domain}/`],
-      scopes_supported: ['read', 'write'],
+      // Granular, per-resource read scopes — these are the scopes defined on
+      // the MCP Auth0 resource server and enforced per-tool by perch-api
+      // (requireResourceScope). Advertising them lets a client request only
+      // the subset it needs (least privilege); a token must carry the scope
+      // for a tool's resource or perch-api returns 403 INSUFFICIENT_SCOPE.
+      // The tools are read-only, so no `write` scope is offered.
+      scopes_supported: MCP_RESOURCE_SCOPES,
       bearer_methods_supported: ['header'],
     });
   });
