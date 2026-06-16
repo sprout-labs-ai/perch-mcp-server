@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { perchClient } from '../api/client.js';
+import { clientFor } from '../api/client.js';
 import { frequencyLabel, type Series } from '../api/types.js';
 
 export function registerListRecurringSeries(server: McpServer): void {
@@ -12,7 +12,7 @@ export function registerListRecurringSeries(server: McpServer): void {
         'List the recurring payments and income (series) on a specific Perch account. ' +
         'Each series is a template — for example "Netflix every month $15.99" or "Paycheck biweekly $2,400." ' +
         "Call list_accounts first if you don't already know the accountId. " +
-        'Read-only.',
+        'Requires the `read:series` scope. Read-only.',
       inputSchema: {
         accountId: z
           .string()
@@ -24,8 +24,8 @@ export function registerListRecurringSeries(server: McpServer): void {
           .describe('Include series whose end_date has passed or whose count is exhausted. Defaults to false.'),
       },
     },
-    async ({ accountId, includeEnded }) => {
-      const series = await perchClient.get<Series[]>(
+    async ({ accountId, includeEnded }, extra) => {
+      const series = await clientFor(extra).get<Series[]>(
         `/api/v1/accounts/${encodeURIComponent(accountId)}/series`,
       );
 

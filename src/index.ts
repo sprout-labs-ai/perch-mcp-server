@@ -1,12 +1,37 @@
 #!/usr/bin/env node
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { buildServer } from './server.js';
+/**
+ * Entry point. Dispatches to stdio (default) or HTTP transport based on
+ * argv / env. Stderr-only for logging — stdout is reserved for stdio
+ * JSON-RPC frames.
+ */
+
+import { startStdio } from './transport/stdio.js';
+import { startHttp } from './transport/http.js';
+
+function readEnv(name: string, fallback?: string): string {
+  const v = process.env[name]?.trim();
+  if (v) return v;
+  if (fallback !== undefined) return fallback;
+  throw new Error(`${name} env var is required for HTTP mode`);
+}
 
 async function main(): Promise<void> {
-  const server = buildServer();
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  // Server runs until stdin closes — the MCP SDK handles message loop.
+  const useHttp = process.argv.includes('--http')
+    || process.env.PERCH_MCP_TRANSPORT === 'http';
+
+  if (!useHttp) {
+    await startStdio();
+    return;
+  }
+
+  await startHttp({
+    port: Number(process.env.PORT ?? '3001'),
+    host: process.env.HOST ?? '127.0.0.1',
+    publicUrl: readEnv('PERCH_MCP_PUBLIC_URL', 'http://127.0.0.1:3001'),
+    auth0Domain: readEnv('AUTH0_DOMAIN'),
+    audience: readEnv('AUTH0_MCP_AUDIENCE', 'https://mcp.theperch.app'),
+    allowedHosts: process.env.ALLOWED_HOSTS?.split(',').map((s) => s.trim()).filter(Boolean),
+  });
 }
 
 main().catch((err) => {
