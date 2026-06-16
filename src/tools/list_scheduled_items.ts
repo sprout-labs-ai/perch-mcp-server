@@ -16,6 +16,9 @@ export function registerListScheduledItems(server: McpServer): void {
         '"what bills are due", or anything date-specific — list_recurring_series only gives templates, ' +
         'this gives concrete dates. ' +
         'Amounts are signed: negative for expenses, positive for income/refunds. ' +
+        'Each item carries isPaid plus paidAt — the ISO-8601 timestamp of when the user ' +
+        'marked that occurrence paid (null when unpaid). Use paidAt to answer "when did I ' +
+        'last pay / mark paid <series>?". ' +
         "Call list_accounts first if you don't already know the accountId. " +
         'Requires the `read:schedule` scope. Read-only.',
       inputSchema: {

@@ -65,6 +65,11 @@ export interface ScheduledItem {
   direction: 'income' | 'expense' | 'transfer' | 'refund';
   frequency: Frequency;
   isPaid: boolean;
+  /**
+   * ISO-8601 timestamp of when this occurrence was marked paid, or null
+   * when it isn't paid. Answers "when did I last mark this paid?".
+   */
+  paidAt: string | null;
   isRescheduled: boolean;
 }
 
