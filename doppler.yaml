@@ -1,0 +1,7 @@
+# Pins this repo to the Doppler project + config for local dev.
+# Contains NO secrets — safe to commit. `doppler setup --no-interactive` reads it.
+# Deployed envs (staging/prod) get their secrets via the Doppler→Render sync
+# integration, not from this file.
+setup:
+  project: perch-mcp-server
+  config: dev
