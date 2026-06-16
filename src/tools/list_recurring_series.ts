@@ -12,7 +12,7 @@ export function registerListRecurringSeries(server: McpServer): void {
         'List the recurring payments and income (series) on a specific Perch account. ' +
         'Each series is a template — for example "Netflix every month $15.99" or "Paycheck biweekly $2,400." ' +
         "Call list_accounts first if you don't already know the accountId. " +
-        'Read-only.',
+        'Requires the `read:series` scope. Read-only.',
       inputSchema: {
         accountId: z
           .string()

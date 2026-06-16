@@ -97,7 +97,13 @@ describe('GET /.well-known/oauth-protected-resource', () => {
     const body = await res.json();
     expect(body.resource).toBe(AUDIENCE);
     expect(body.authorization_servers).toEqual([`https://${AUTH0_DOMAIN}/`]);
-    expect(body.scopes_supported).toEqual(['read', 'write']);
+    // Granular per-resource read scopes, enforced per-tool by perch-api.
+    expect(body.scopes_supported).toEqual([
+      'read:accounts',
+      'read:series',
+      'read:schedule',
+      'read:forecast',
+    ]);
     expect(body.bearer_methods_supported).toEqual(['header']);
   });
 

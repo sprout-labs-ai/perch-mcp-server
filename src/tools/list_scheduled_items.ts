@@ -17,7 +17,7 @@ export function registerListScheduledItems(server: McpServer): void {
         'this gives concrete dates. ' +
         'Amounts are signed: negative for expenses, positive for income/refunds. ' +
         "Call list_accounts first if you don't already know the accountId. " +
-        'Read-only.',
+        'Requires the `read:schedule` scope. Read-only.',
       inputSchema: {
         accountId: z
           .string()
