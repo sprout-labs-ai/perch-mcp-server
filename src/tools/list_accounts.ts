@@ -11,7 +11,7 @@ export function registerListAccounts(server: McpServer): void {
         "List the user's Perch accounts with their current balances. " +
         'Use this when the user asks how much money they have, where their money is, ' +
         'or whenever you need an accountId before calling another tool. ' +
-        'Read-only.',
+        'Requires the `read:accounts` scope. Read-only.',
       inputSchema: {},
     },
     async (_args, extra) => {

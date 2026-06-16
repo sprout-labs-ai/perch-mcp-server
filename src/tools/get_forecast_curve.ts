@@ -18,7 +18,7 @@ export function registerGetForecastCurve(server: McpServer): void {
         '"daily" emits one point per calendar day for a contiguous chart (best for plotting); ' +
         '"event" emits a starting point plus one point per event-bearing day (smaller, best for tables). ' +
         "Call list_accounts first if you don't already know the accountId. " +
-        'Read-only.',
+        'Requires the `read:forecast` scope. Read-only.',
       inputSchema: {
         accountId: z
           .string()

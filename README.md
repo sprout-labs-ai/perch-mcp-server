@@ -14,6 +14,16 @@ Model Context Protocol server for [Perch](https://perch.app). Connects Perch to 
 | `get_forecast_curve` | Server-computed running balance projection over a window — chart-ready time series |
 | `simulate_forecast` | What-if: re-run the projection with hypothetical items merged in (read-only, never persisted) |
 
+Plus five **admin (machine-to-machine)** tools — registered only when M2M credentials are configured (see [Admin tools](#admin-tools-machine-to-machine)):
+
+| Tool | Scope required |
+|---|---|
+| `admin_get_user` | `users:read` |
+| `admin_list_users` | `users:read` |
+| `admin_get_user_activity` | `users:read` |
+| `admin_get_brand_exposures` | `brand_exposures:read` |
+| `admin_get_suppressed_suggestions` | `suppressed_suggestions:read` |
+
 | Transport | Auth | Use when |
 |---|---|---|
 | **stdio** (default) | PAT (`PERCH_API_TOKEN` env) | Local install via Claude Desktop / Cursor / Zed / Claude Code |
@@ -52,13 +62,58 @@ Generate a Personal Access Token from Perch's settings page (or via the `POST /a
 
 PATs cannot perform admin actions and cannot create or revoke other tokens.
 
+## Admin tools (machine-to-machine)
+
+> **Design + how to add a scope:** see the cross-repo handoff doc in perch-api —
+> [`docs/api-handoff-m2m-mcp-admin-auth.md`](https://github.com/sprout-labs-ai/perch-api/blob/staging/docs/api-handoff-m2m-mcp-admin-auth.md)
+> (As-built + "Adding a scope" recipe). That's the source of truth for the whole M2M system.
+
+The five `admin_*` tools authenticate against perch-api with a **server-side
+client credential**, not the calling user's identity. They are intended for a
+dedicated operator instance (e.g. Claude Code on a maintainer's machine), never
+the multi-tenant HTTP deployment.
+
+They are **only registered when both `PERCH_MCP_CLIENT_ID` and
+`PERCH_MCP_CLIENT_SECRET` are set in the environment.** With those unset (the
+default, and how the hosted HTTP server runs) the admin tools don't exist —
+there's no way to reach an admin endpoint with a regular user token.
+
+Mint a client in the Perch admin portal under **System → MCP clients**, grant it
+the narrowest scopes it needs (all read-only in v1), and copy the secret once.
+Then configure a stdio instance:
+
+```jsonc
+{
+  "mcpServers": {
+    "perch-admin": {
+      "command": "npx",
+      "args": ["perch-mcp-server"],
+      "env": {
+        "PERCH_API_URL": "https://api.perch.app",
+        "PERCH_MCP_CLIENT_ID": "mcp_…",
+        "PERCH_MCP_CLIENT_SECRET": "…"
+      }
+    }
+  }
+}
+```
+
+Under the hood the server exchanges those credentials for a short-lived
+(5-minute) bearer token via the OAuth `client_credentials` grant at
+`POST /api/v1/oauth/token`, caches it in memory, refreshes ~30s before expiry,
+and force-refreshes + retries once on a 401. A revoked client stops working
+immediately — perch-api re-checks the client row on every request.
+
 ## Privacy
 
 This server reads from Perch's API on your behalf. It does not:
 
-- Write or modify any data (Phase 1.7 is strictly read-only)
-- Access admin endpoints (server-side guard prevents this regardless of token)
+- Write or modify any data (strictly read-only — both user and admin tools)
 - Send data anywhere other than your AI client
+
+The user-scoped tools use your own token and can only see your own data. The
+`admin_*` tools are gated behind a separately-provisioned M2M credential and are
+absent unless you explicitly configure one (see [Admin tools](#admin-tools-machine-to-machine)).
 
 The AI client (Claude/ChatGPT/etc.) processes the responses according to its own data policy.
 

@@ -16,7 +16,7 @@ export function registerSimulateForecast(server: McpServer): void {
         'Each hypothetical needs an occursOn date (YYYY-MM-DD), a signed amount as a decimal string ' +
         '(negative for expenses like "-500.00", positive for income like "1200.00"), and a description. ' +
         "Call list_accounts first if you don't already know the accountId. " +
-        'Read-only.',
+        'Requires the `read:forecast` scope. Read-only.',
       inputSchema: {
         accountId: z
           .string()
