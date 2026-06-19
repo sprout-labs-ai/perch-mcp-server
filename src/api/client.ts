@@ -88,6 +88,26 @@ export class PerchClient {
       if (res.status === 403 && parsed?.code === 'INSUFFICIENT_SCOPE') {
         throw new PerchApiError(403, parsed.code, `Token is missing the scope required for ${url.pathname}.`);
       }
+      // Privacy-control enforcement (perch-api, MCP-audienced requests):
+      //   - INTEGRATIONS_DISABLED — the account's `allow_integrations` control
+      //     is off; perch-api refuses all assistant access until re-enabled.
+      //   - APPROVAL_REQUIRED — a future write/"changes" tool is gated by the
+      //     `require_approval_for_changes` control and needs in-app approval.
+      // Surface calm, consumer-safe guidance (no MCP/transport detail).
+      if (res.status === 403 && parsed?.code === 'INTEGRATIONS_DISABLED') {
+        throw new PerchApiError(
+          403,
+          parsed.code,
+          'Integrations are turned off for this Perch account. The account owner can turn them back on in the Perch app under Settings → Integrations → Privacy.',
+        );
+      }
+      if (res.status === 403 && parsed?.code === 'APPROVAL_REQUIRED') {
+        throw new PerchApiError(
+          403,
+          parsed.code,
+          'This change needs approval in the Perch app before an assistant can make it. Approve it under Settings → Integrations, then try again.',
+        );
+      }
 
       throw new PerchApiError(
         res.status,

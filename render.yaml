@@ -1,0 +1,74 @@
+# Render Blueprint for the Perch MCP server (HTTP mode).
+#
+# The MCP server runs as a long-lived Express service (stateless POST /mcp),
+# proxying Auth0-audienced tokens through to perch-api. It lives alongside
+# perch-api on Render (not Vercel — the mcp-*.theperch.app DNS must be repointed
+# off Vercel to the Render service domain).
+#
+# One service per environment, each tracking its branch:
+#   - perch-mcp-staging   ← branch `staging`   → mcp-staging.theperch.app
+#   - perch-mcp-prod      ← branch `main`      → mcp.theperch.app
+# (dev is normally run locally with `--http`; a perch-mcp-dev service can be
+#  added the same way, tracking `staging`, pointed at mcp-dev.theperch.app +
+#  the dev Auth0 tenant.)
+#
+# Env-specific values (Auth0 tenant domain, MCP audience, public URL, upstream
+# API URL, allowed hosts) are marked `sync: false` and set per-service in the
+# Render dashboard so one blueprint serves every environment without leaking
+# config between tenants.
+
+services:
+  - type: web
+    name: perch-mcp-staging
+    runtime: node
+    plan: starter
+    branch: staging
+    buildCommand: npm ci && npm run build
+    startCommand: node dist/index.js --http
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PERCH_MCP_TRANSPORT
+        value: http
+      - key: HOST
+        value: 0.0.0.0
+      - key: NODE_VERSION
+        value: "20"
+      # Per-tenant / per-env — set in the dashboard (never committed):
+      - key: AUTH0_DOMAIN            # e.g. auth-staging.theperch.app
+        sync: false
+      - key: AUTH0_MCP_AUDIENCE      # e.g. https://mcp-staging.theperch.app
+        sync: false
+      - key: PERCH_MCP_PUBLIC_URL    # e.g. https://mcp-staging.theperch.app
+        sync: false
+      - key: PERCH_API_URL           # e.g. https://api-staging.theperch.app
+        sync: false
+      - key: ALLOWED_HOSTS           # e.g. mcp-staging.theperch.app
+        sync: false
+
+  - type: web
+    name: perch-mcp-prod
+    runtime: node
+    plan: starter
+    branch: main
+    buildCommand: npm ci && npm run build
+    startCommand: node dist/index.js --http
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PERCH_MCP_TRANSPORT
+        value: http
+      - key: HOST
+        value: 0.0.0.0
+      - key: NODE_VERSION
+        value: "20"
+      - key: AUTH0_DOMAIN            # e.g. auth.theperch.app
+        sync: false
+      - key: AUTH0_MCP_AUDIENCE      # https://mcp.theperch.app
+        sync: false
+      - key: PERCH_MCP_PUBLIC_URL    # https://mcp.theperch.app
+        sync: false
+      - key: PERCH_API_URL           # https://api.theperch.app
+        sync: false
+      - key: ALLOWED_HOSTS           # mcp.theperch.app
+        sync: false

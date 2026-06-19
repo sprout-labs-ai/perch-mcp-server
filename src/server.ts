@@ -10,12 +10,19 @@ import { registerAdminGetBrandExposures } from './tools/admin_get_brand_exposure
 import { registerAdminGetSuppressedSuggestions } from './tools/admin_get_suppressed_suggestions.js';
 import { registerAdminGetUserActivity } from './tools/admin_get_user_activity.js';
 import { isM2MConfigured } from './auth/m2mToken.js';
+import { instrumentToolActivity } from './activity/instrument.js';
 
 export function buildServer(): McpServer {
   const server = new McpServer({
     name: 'perch-mcp-server',
     version: '0.2.0',
   });
+
+  // Wrap registerTool so the read-only user tools emit a calm, PII-free
+  // access-activity entry to perch-api after each successful call (HTTP
+  // transport / connected-assistant requests only). Must run before any tool
+  // is registered. Admin/M2M tools are untouched. See activity/instrument.ts.
+  instrumentToolActivity(server);
 
   // User-scoped tools — authenticate as the calling user (PAT in stdio
   // mode, forwarded Auth0 JWT in HTTP mode).
