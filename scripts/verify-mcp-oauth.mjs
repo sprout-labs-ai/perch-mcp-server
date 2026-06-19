@@ -69,8 +69,26 @@ const server = http.createServer(async (req, res) => {
   if (url.pathname !== '/callback') { res.writeHead(404).end(); return; }
   const code = url.searchParams.get('code');
   const err = url.searchParams.get('error');
-  res.writeHead(200, { 'Content-Type': 'text/html' });
-  res.end('<h2>Done — you can close this tab and return to the terminal.</h2>');
+  res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+  res.end(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Perch — connected</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+         background:#000; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; color:#1a1a1a; }
+  .card { background:#fff; border-radius:20px; padding:40px 48px; max-width:420px; text-align:center;
+          box-shadow:0 12px 40px rgba(0,0,0,.35); }
+  .check { width:64px; height:64px; border-radius:16px; margin:0 auto 20px;
+           background:#FF8A6A; display:flex; align-items:center; justify-content:center; }
+  .check svg { width:34px; height:34px; stroke:#fff; stroke-width:3; fill:none; }
+  h1 { font-size:22px; margin:0 0 8px; }
+  p { color:#666; font-size:15px; line-height:1.5; margin:0; }
+</style></head>
+<body><div class="card">
+  <div class="check"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+  <h1>You're all set</h1>
+  <p>Perch is connected. You can close this tab and return to the terminal.</p>
+</div></body></html>`);
   if (err) { console.error('Authorize error:', err, url.searchParams.get('error_description')); server.close(); process.exit(1); }
 
   const tokenRes = await fetch(`https://${DOMAIN}/oauth/token`, {
