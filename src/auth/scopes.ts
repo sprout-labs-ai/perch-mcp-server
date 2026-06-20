@@ -15,6 +15,12 @@
  *   list_scheduled_items   → read:schedule
  *   get_forecast_curve     → read:forecast
  *   simulate_forecast      → read:forecast
+ *
+ * These technical scopes map to the calm, consumer-facing permission keys the
+ * iOS Integrations screen shows (current_balance, upcoming_items, …). That
+ * correspondence — and the helper perch-api uses to turn a granted token's
+ * scopes into the `permissions:[{key,enabled}]` list — lives in
+ * `./permissions.ts`.
  */
 export const MCP_RESOURCE_SCOPES = [
   'read:accounts',

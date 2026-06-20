@@ -104,6 +104,48 @@ Under the hood the server exchanges those credentials for a short-lived
 and force-refreshes + retries once on a 401. A revoked client stops working
 immediately — perch-api re-checks the client row on every request.
 
+## Consumer Integrations (Settings → Integrations)
+
+The Perch iOS app's **Integrations** area — connect/disconnect assistants like
+ChatGPT and Claude, view their permissions, see an access activity log, and set
+privacy controls — is driven by *this* OAuth 2.1 + resource-scope flow.
+"Connect an assistant" is an Auth0 authorization-code grant for the
+`mcp.theperch.app` resource; the granted scopes become the permissions a person
+sees.
+
+> **Design + cross-repo contract:** see
+> [`docs/handoff-consumer-integrations.md`](docs/handoff-consumer-integrations.md)
+> — connection identity (the `azp → integration` join), the connect handoff,
+> the scope↔permission mapping, activity emission, and privacy enforcement,
+> including what must be resolved jointly with perch-api.
+
+What lives here:
+
+| Concern | Module |
+|---|---|
+| Scope ↔ consumer-permission mapping | [`src/auth/permissions.ts`](src/auth/permissions.ts) |
+| Per-tool access-activity emission | [`src/activity/`](src/activity) |
+| Privacy-control error surfacing | [`src/api/client.ts`](src/api/client.ts) |
+
+The mapping between the technical scopes and the calm permission keys the UI
+shows:
+
+| Consumer permission | MCP scope | Status |
+|---|---|---|
+| `current_balance` | `read:accounts` | live |
+| `upcoming_items` | `read:schedule` | live |
+| `activity_history` | `read:series` | live |
+| `forecast` | `read:forecast` | live |
+| `suggestions` | — | not yet available |
+| `changes` | — | not yet available (write) |
+
+Every successful tool call from a connected assistant emits one calm, PII-free
+activity entry (a fixed summary + permission key — never arguments, amounts,
+dates, IDs, or transport detail) to perch-api, which surfaces it in the app's
+activity log. Account-wide privacy controls (`allow_integrations`,
+`require_approval_for_changes`) are enforced by perch-api; this server
+translates their refusals into calm, consumer-safe guidance.
+
 ## Privacy
 
 This server reads from Perch's API on your behalf. It does not:
