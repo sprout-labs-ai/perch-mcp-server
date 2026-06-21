@@ -52,12 +52,25 @@ Also ensure identifier-first is on: `auth0 api patch "prompts" --data '{"identif
 ## 4. Attribution Action
 `mcp-integration-attribution.action.js` maps the connecting client's name →
 integration slug and stamps the `<mcp-audience>/integration` claim perch-api reads.
+
+The name→slug map is **registry-driven**: the Action fetches it from perch-api's
+public catalog (`GET <PERCH_API_BASE_URL>/api/v1/integrations/attribution-map`,
+derived from the admin-managed `integrations` table). So **onboarding a new
+assistant needs NO change to this Action** — add it in perch-admin (System →
+Assistants) and fill its client-name patterns there. The Action only changes if
+the matching logic itself does.
+
 ```bash
 auth0 actions create --name "MCP Integration Attribution" --trigger post-login \
   --code "$(cat auth0/mcp-integration-attribution.action.js)" \
-  --secret "MCP_AUDIENCE=https://mcp-dev.theperch.app"   # per tenant
+  --secret "MCP_AUDIENCE=https://mcp-dev.theperch.app" \      # per tenant
+  --secret "PERCH_API_BASE_URL=https://api-dev.theperch.app"  # per tenant, perch-api origin
 auth0 actions deploy <action-id>
 ```
+Both secrets are required; with either unset the Action no-ops. The map is cached
+in the warm Action container (5-min TTL) and served stale on a fetch error, so a
+perch-api blip never breaks login — it just reuses the last good map.
+
 **Then BIND it to the post-login flow** — Dashboard → Actions → Triggers →
 post-login → drag it in → Apply. Deploying alone does nothing; an unbound action
 silently no-ops (the `integration` claim comes back `undefined`).
