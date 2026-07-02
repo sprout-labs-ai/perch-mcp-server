@@ -34,6 +34,27 @@ describe('privacy-control 403 mapping', () => {
     expect((err as PerchApiError).message).not.toMatch(/mcp|bearer|token|scope/i);
   });
 
+  it('INTEGRATION_NOT_CONNECTED → calm reconnect guidance', async () => {
+    mock403('INTEGRATION_NOT_CONNECTED');
+    const err = await clientFor(extra).get('/api/v1/accounts').catch((e) => e);
+    expect(err).toBeInstanceOf(PerchApiError);
+    expect((err as PerchApiError).status).toBe(403);
+    expect((err as PerchApiError).code).toBe('INTEGRATION_NOT_CONNECTED');
+    expect((err as PerchApiError).message).toContain('disconnected');
+    expect((err as PerchApiError).message).toContain('Settings → Integrations');
+    expect((err as PerchApiError).message).not.toMatch(/mcp|bearer|token|scope/i);
+  });
+
+  it('PERMISSION_DISABLED → calm permission-toggle guidance', async () => {
+    mock403('PERMISSION_DISABLED');
+    const err = await clientFor(extra).get('/api/v1/accounts').catch((e) => e);
+    expect(err).toBeInstanceOf(PerchApiError);
+    expect((err as PerchApiError).code).toBe('PERMISSION_DISABLED');
+    expect((err as PerchApiError).message).toContain('turned off for this assistant');
+    expect((err as PerchApiError).message).toContain('Settings → Integrations');
+    expect((err as PerchApiError).message).not.toMatch(/mcp|bearer|token|scope/i);
+  });
+
   it('APPROVAL_REQUIRED → calm require_approval_for_changes guidance', async () => {
     mock403('APPROVAL_REQUIRED');
     const err = await clientFor(extra).post('/api/v1/some/write', {}).catch((e) => e);

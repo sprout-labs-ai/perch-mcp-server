@@ -88,10 +88,17 @@ export class PerchClient {
       if (res.status === 403 && parsed?.code === 'INSUFFICIENT_SCOPE') {
         throw new PerchApiError(403, parsed.code, `Token is missing the scope required for ${url.pathname}.`);
       }
-      // Privacy-control enforcement (perch-api, MCP-audienced requests):
+      // Privacy-control + per-connection enforcement (perch-api, MCP-audienced
+      // requests — see perch-api middleware/integrationPermission.ts for the
+      // precedence order):
       //   - INTEGRATIONS_DISABLED — the account's `allow_integrations` control
-      //     is off; perch-api refuses all assistant access until re-enabled.
-      //   - APPROVAL_REQUIRED — a future write/"changes" tool is gated by the
+      //     is off (a PAUSE); perch-api refuses all assistant access until
+      //     re-enabled, with connections and permissions kept intact.
+      //   - INTEGRATION_NOT_CONNECTED — the user disconnected this assistant
+      //     in Settings; perch-api refuses its requests until reconnected.
+      //   - PERMISSION_DISABLED — the specific per-assistant permission backing
+      //     this request is toggled off.
+      //   - APPROVAL_REQUIRED — a write/"changes" tool is gated by the
       //     `require_approval_for_changes` control and needs in-app approval.
       // Surface calm, consumer-safe guidance (no MCP/transport detail).
       if (res.status === 403 && parsed?.code === 'INTEGRATIONS_DISABLED') {
@@ -99,6 +106,20 @@ export class PerchClient {
           403,
           parsed.code,
           'Integrations are turned off for this Perch account. The account owner can turn them back on in the Perch app under Settings → Integrations → Privacy.',
+        );
+      }
+      if (res.status === 403 && parsed?.code === 'INTEGRATION_NOT_CONNECTED') {
+        throw new PerchApiError(
+          403,
+          parsed.code,
+          'This assistant is disconnected from the Perch account. Reconnect it in the Perch app under Settings → Integrations, then try again.',
+        );
+      }
+      if (res.status === 403 && parsed?.code === 'PERMISSION_DISABLED') {
+        throw new PerchApiError(
+          403,
+          parsed.code,
+          'That information is turned off for this assistant. The account owner can allow it in the Perch app under Settings → Integrations.',
         );
       }
       if (res.status === 403 && parsed?.code === 'APPROVAL_REQUIRED') {
