@@ -51,20 +51,54 @@ export async function startHttp(opts: StartHttpOptions): Promise<void> {
   });
   app.use(express.json({ limit: '1mb' }));
 
+  // ── Authorization Server Metadata (RFC 8414) — DCR discovery shim ─────
+  // Ory Hydra (our OAuth AS) does NOT advertise `registration_endpoint` in
+  // its discovery doc and serves no /.well-known/oauth-authorization-server,
+  // so MCP clients (Claude) can't discover Dynamic Client Registration and
+  // hang at "checking connection". We bridge that here: publish AS metadata
+  // whose `issuer` is our own public URL (self-consistent per RFC 8414) but
+  // whose endpoints — crucially including the DCR `registration_endpoint` —
+  // point at Hydra. The PRM below therefore lists THIS server as the
+  // authorization server, so the client fetches this patched metadata.
+  //
+  // Token verification is unchanged: the verifier still requires `iss` =
+  // Hydra, and the resource server (this process) validates the token. The
+  // client only *follows* the advertised endpoints; it never mints tokens.
+  const issuer = opts.publicUrl.replace(/\/+$/, '');
+  const hydra = `https://${opts.auth0Domain}`; // auth0Domain holds Hydra's domain post-cutover
+  const asMetadata = {
+    issuer,
+    authorization_endpoint: `${hydra}/oauth2/auth`,
+    token_endpoint: `${hydra}/oauth2/token`,
+    registration_endpoint: `${hydra}/oauth2/register`,
+    jwks_uri: `${hydra}/.well-known/jwks.json`,
+    response_types_supported: ['code'],
+    grant_types_supported: ['authorization_code', 'refresh_token'],
+    code_challenge_methods_supported: ['S256'],
+    token_endpoint_auth_methods_supported: ['none', 'client_secret_basic', 'client_secret_post'],
+    scopes_supported: ['openid', 'offline_access', ...MCP_RESOURCE_SCOPES],
+  };
+  // Served at both well-known paths so clients probing either RFC 8414
+  // (oauth-authorization-server) or OIDC discovery (openid-configuration)
+  // find the endpoints + registration_endpoint.
+  app.get('/.well-known/oauth-authorization-server', (_req, res) => res.json(asMetadata));
+  app.get('/.well-known/openid-configuration', (_req, res) => res.json(asMetadata));
+
   // ── Protected Resource Metadata (RFC 9728) ───────────────────────────
   // MCP clients fetch this to discover the OAuth authorization server.
   // No auth required — by spec this endpoint must be publicly reachable.
+  // `authorization_servers` points at THIS server (see the shim above), not
+  // Hydra directly, so the client gets metadata that advertises DCR.
   const prmPath = '/.well-known/oauth-protected-resource';
   app.get(prmPath, (_req, res) => {
     res.json({
       resource: opts.audience,
-      authorization_servers: [`https://${opts.auth0Domain}/`],
-      // Granular, per-resource read scopes — these are the scopes defined on
-      // the MCP Auth0 resource server and enforced per-tool by perch-api
-      // (requireResourceScope). Advertising them lets a client request only
-      // the subset it needs (least privilege); a token must carry the scope
-      // for a tool's resource or perch-api returns 403 INSUFFICIENT_SCOPE.
-      // The tools are read-only, so no `write` scope is offered.
+      authorization_servers: [issuer],
+      // Granular, per-resource read scopes — these are the scopes enforced
+      // per-tool by perch-api (requireResourceScope). Advertising them lets a
+      // client request only the subset it needs (least privilege); a token
+      // must carry the scope for a tool's resource or perch-api returns 403
+      // INSUFFICIENT_SCOPE. The tools are read-only, so no `write` scope.
       scopes_supported: MCP_RESOURCE_SCOPES,
       bearer_methods_supported: ['header'],
     });
