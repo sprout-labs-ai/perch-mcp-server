@@ -1,7 +1,7 @@
 # Render Blueprint for the Perch MCP server (HTTP mode).
 #
 # The MCP server runs as a long-lived Express service (stateless POST /mcp),
-# proxying Auth0-audienced tokens through to perch-api. It lives alongside
+# proxying Hydra-issued tokens through to perch-api. It lives alongside
 # perch-api on Render (not Vercel — the mcp-*.theperch.app DNS must be repointed
 # off Vercel to the Render service domain).
 #
@@ -10,9 +10,9 @@
 #   - perch-mcp-prod      ← branch `main`      → mcp.theperch.app
 # (dev is normally run locally with `--http`; a perch-mcp-dev service can be
 #  added the same way, tracking `staging`, pointed at mcp-dev.theperch.app +
-#  the dev Auth0 tenant.)
+#  the dev Hydra issuer.)
 #
-# Env-specific values (Auth0 tenant domain, MCP audience, public URL, upstream
+# Env-specific values (Hydra issuer, MCP audience, public URL, upstream
 # API URL, allowed hosts) are marked `sync: false` and set per-service in the
 # Render dashboard so one blueprint serves every environment without leaking
 # config between tenants.
@@ -35,9 +35,9 @@ services:
       - key: NODE_VERSION
         value: "20"
       # Per-tenant / per-env — set in the dashboard (never committed):
-      - key: AUTH0_DOMAIN            # e.g. auth-staging.theperch.app
+      - key: HYDRA_ISSUER           # e.g. https://mcp-auth-staging.theperch.app
         sync: false
-      - key: AUTH0_MCP_AUDIENCE      # e.g. https://mcp-staging.theperch.app
+      - key: MCP_AUDIENCE           # e.g. https://mcp-staging.theperch.app
         sync: false
       - key: PERCH_MCP_PUBLIC_URL    # e.g. https://mcp-staging.theperch.app
         sync: false
@@ -62,9 +62,9 @@ services:
         value: 0.0.0.0
       - key: NODE_VERSION
         value: "20"
-      - key: AUTH0_DOMAIN            # e.g. auth.theperch.app
+      - key: HYDRA_ISSUER           # https://mcp-auth.theperch.app
         sync: false
-      - key: AUTH0_MCP_AUDIENCE      # https://mcp.theperch.app
+      - key: MCP_AUDIENCE           # https://mcp.theperch.app
         sync: false
       - key: PERCH_MCP_PUBLIC_URL    # https://mcp.theperch.app
         sync: false

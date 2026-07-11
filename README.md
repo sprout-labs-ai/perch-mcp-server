@@ -159,15 +159,15 @@ absent unless you explicitly configure one (see [Admin tools](#admin-tools-machi
 
 The AI client (Claude/ChatGPT/etc.) processes the responses according to its own data policy.
 
-## HTTP transport (Auth0 OAuth)
+## HTTP transport (Hydra OAuth)
 
 For remote hosting (e.g., `https://mcp.theperch.app` for ChatGPT
-compatibility) the server runs in HTTP mode and accepts Auth0-issued
+compatibility) the server runs in HTTP mode and accepts Hydra-issued
 access tokens audience'd to the MCP server.
 
 ```bash
-AUTH0_DOMAIN=perch.us.auth0.com \
-AUTH0_MCP_AUDIENCE=https://mcp.theperch.app \
+HYDRA_ISSUER=https://mcp-auth.theperch.app \
+MCP_AUDIENCE=https://mcp.theperch.app \
 PERCH_MCP_PUBLIC_URL=https://mcp.theperch.app \
 PERCH_API_URL=https://api.perch.app \
 PORT=3001 \
@@ -179,8 +179,8 @@ Endpoints exposed:
 | Path | Auth | What |
 |---|---|---|
 | `GET /health` | none | Liveness probe |
-| `GET /.well-known/oauth-protected-resource` | none | RFC 9728 metadata pointing MCP clients at the Auth0 tenant |
-| `POST /mcp` | Bearer (Auth0 JWT for the MCP audience) | MCP JSON-RPC endpoint, stateless |
+| `GET /.well-known/oauth-protected-resource` | none | RFC 9728 metadata pointing MCP clients at the Hydra issuer |
+| `POST /mcp` | Bearer (Hydra JWT for the MCP audience) | MCP JSON-RPC endpoint, stateless |
 
 When a request arrives without a valid token, the server emits the
 spec-compliant `WWW-Authenticate: Bearer error="invalid_token", resource_metadata="…"`
@@ -188,7 +188,7 @@ header so MCP clients can discover the auth server and start the OAuth
 flow.
 
 Inbound JWTs are forwarded verbatim to perch-api as the `Authorization`
-header — perch-api accepts the same audience via its `AUTH0_MCP_AUDIENCE`
+header — perch-api accepts the same audience via its `MCP_AUDIENCE`
 configuration. No token exchange round-trip per request.
 
 ## Local development
@@ -202,7 +202,7 @@ npm install
 PERCH_API_URL=http://localhost:3000 PERCH_API_TOKEN=pat_… npm run dev
 
 # HTTP mode, also against a local perch-api
-AUTH0_DOMAIN=… AUTH0_MCP_AUDIENCE=https://mcp.theperch.app \
+HYDRA_ISSUER=… MCP_AUDIENCE=https://mcp.theperch.app \
   PORT=3401 PERCH_API_URL=http://localhost:3000 \
   npm run dev -- --http
 ```

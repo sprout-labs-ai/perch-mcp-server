@@ -43,7 +43,7 @@ which it opens in a Safari sheet and never renders as text.
 
 Each connected assistant is an **Auth0 OAuth client**. Its access token carries
 `azp` (authorized party = the `client_id` that requested the token).
-perch-mcp-server's `Auth0Verifier` already surfaces this as `authInfo.clientId`,
+perch-mcp-server's `JwksVerifier` already surfaces this as `authInfo.clientId`,
 and forwards the token verbatim to perch-api, which reads `sub` → user.
 
 **The missing link:** perch-api has no way to map `azp` → an `integrations.id`
