@@ -1,5 +1,5 @@
 /**
- * Auth0Verifier — JWT validation against a mocked JWKS.
+ * JwksVerifier — JWT validation against a mocked JWKS.
  *
  * Strategy: generate an RSA keypair in-process, mock jwks-rsa to
  * return our public key for any kid, and sign test JWTs with the
@@ -18,8 +18,8 @@ import { generateKeyPairSync, createPrivateKey, createPublicKey, type KeyObject 
 import jwt from 'jsonwebtoken';
 
 const KID = 'test-key-1';
-const DOMAIN = 'test.us.auth0.com';
-const ISSUER = `https://${DOMAIN}/`;
+// Full issuer URL, matched against `iss` verbatim (no forced trailing slash).
+const ISSUER = 'https://mcp-auth.example.test';
 const AUDIENCE = 'https://mcp.theperch.app';
 
 let privatePem: string;
@@ -53,11 +53,11 @@ vi.mock('jwks-rsa', () => {
   };
 });
 
-import { Auth0Verifier } from '../src/auth/auth0Verifier.js';
+import { JwksVerifier } from '../src/auth/jwksVerifier.js';
 import { InvalidTokenError } from '@modelcontextprotocol/sdk/server/auth/errors.js';
 
 function makeVerifier() {
-  return new Auth0Verifier({ domain: DOMAIN, audience: AUDIENCE });
+  return new JwksVerifier({ issuer: ISSUER, audience: AUDIENCE });
 }
 
 function signToken(claims: Record<string, unknown>, opts: jwt.SignOptions = {}): string {
@@ -70,7 +70,7 @@ function signToken(claims: Record<string, unknown>, opts: jwt.SignOptions = {}):
 
 function basicClaims(over: Record<string, unknown> = {}): Record<string, unknown> {
   return {
-    sub: 'auth0|abc123',
+    sub: 'hydra|abc123',
     aud: AUDIENCE,
     iss: ISSUER,
     azp: 'cli-test-client',
@@ -84,19 +84,19 @@ function basicClaims(over: Record<string, unknown> = {}): Record<string, unknown
 // ──────────────────────────────────────────────────────────────────────────────
 // Construction guards
 
-describe('Auth0Verifier construction', () => {
-  it('throws when domain is empty', () => {
-    expect(() => new Auth0Verifier({ domain: '', audience: AUDIENCE })).toThrow(/domain/);
+describe('JwksVerifier construction', () => {
+  it('throws when issuer is empty', () => {
+    expect(() => new JwksVerifier({ issuer: '', audience: AUDIENCE })).toThrow(/issuer/);
   });
   it('throws when audience is empty', () => {
-    expect(() => new Auth0Verifier({ domain: DOMAIN, audience: '' })).toThrow(/audience/);
+    expect(() => new JwksVerifier({ issuer: ISSUER, audience: '' })).toThrow(/audience/);
   });
 });
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Happy path
 
-describe('Auth0Verifier.verifyAccessToken — valid token', () => {
+describe('JwksVerifier.verifyAccessToken — valid token', () => {
   it('returns AuthInfo with token, clientId, scopes, expiresAt, resource', async () => {
     const token = signToken(basicClaims());
     const info = await makeVerifier().verifyAccessToken(token);
@@ -134,7 +134,7 @@ describe('Auth0Verifier.verifyAccessToken — valid token', () => {
 // Failure modes — each should throw InvalidTokenError so the SDK
 // middleware emits a spec-compliant 401, not a 500.
 
-describe('Auth0Verifier.verifyAccessToken — rejection cases', () => {
+describe('JwksVerifier.verifyAccessToken — rejection cases', () => {
   it('rejects a malformed (non-JWT) string', async () => {
     await expect(makeVerifier().verifyAccessToken('not-a-jwt'))
       .rejects.toBeInstanceOf(InvalidTokenError);

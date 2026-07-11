@@ -10,13 +10,13 @@
  *   - POST /mcp without auth → 401 + WWW-Authenticate with the PRM URL
  *     (this is the trigger for MCP clients to discover the auth server)
  *   - POST /mcp with a bogus token → 401 (NOT 500 — exercises the
- *     InvalidTokenError mapping in Auth0Verifier)
+ *     InvalidTokenError mapping in JwksVerifier)
  *   - GET /mcp and DELETE /mcp → 405 in stateless mode
  *
  * Auth0 itself is not contacted: the JWKS lookup is mocked to always
  * fail, which is fine because every test in this file uses either no
  * token or a syntactically invalid one. The valid-token path is
- * covered by auth0Verifier.test.ts.
+ * covered by jwksVerifier.test.ts.
  */
 
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
@@ -36,7 +36,7 @@ vi.mock('jwks-rsa', () => ({
 import { startHttp } from '../src/transport/http.js';
 
 const PUBLIC_URL = 'https://mcp.theperch.app';
-const AUTH0_DOMAIN = 'test.us.auth0.com';
+const ISSUER = 'https://mcp-auth.example.test';
 const AUDIENCE = 'https://mcp.theperch.app';
 
 let baseUrl: string;
@@ -58,7 +58,7 @@ beforeAll(async () => {
       port: 0,
       host: '127.0.0.1',
       publicUrl: PUBLIC_URL,
-      auth0Domain: AUTH0_DOMAIN,
+      issuer: ISSUER,
       audience: AUDIENCE,
     });
   } finally {
@@ -91,12 +91,12 @@ describe('GET /health', () => {
 // PRM (RFC 9728)
 
 describe('GET /.well-known/oauth-protected-resource', () => {
-  it('returns the protected resource metadata pointing at Auth0', async () => {
+  it('returns the protected resource metadata pointing at this server (DCR shim)', async () => {
     const res = await fetch(`${baseUrl}/.well-known/oauth-protected-resource`);
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.resource).toBe(AUDIENCE);
-    expect(body.authorization_servers).toEqual([`https://${AUTH0_DOMAIN}/`]);
+    expect(body.authorization_servers).toEqual([PUBLIC_URL]);
     // Granular per-resource read scopes, enforced per-tool by perch-api.
     expect(body.scopes_supported).toEqual([
       'read:accounts',
@@ -134,7 +134,7 @@ describe('POST /mcp authentication', () => {
   });
 
   it('returns 401 (not 500) for a bogus bearer token', async () => {
-    // Verifies the InvalidTokenError mapping in Auth0Verifier — without
+    // Verifies the InvalidTokenError mapping in JwksVerifier — without
     // it, verification failures bubble as 500.
     const res = await fetch(`${baseUrl}/mcp`, {
       method: 'POST',
