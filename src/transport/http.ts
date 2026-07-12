@@ -5,12 +5,12 @@
  *
  * Wires together:
  *   - `createMcpExpressApp` (DNS-rebinding protection on localhost binds)
- *   - `requireBearerAuth(verifier=Auth0Verifier)` — validates inbound
- *     Auth0 access tokens and attaches AuthInfo to req.auth
+ *   - `requireBearerAuth(verifier=JwksVerifier)` — validates inbound
+ *     Hydra-issued access tokens and attaches AuthInfo to req.auth
  *   - `StreamableHTTPServerTransport` in stateless mode — each POST is
  *     a complete JSON-RPC exchange, no session bookkeeping
  *   - `/.well-known/oauth-protected-resource` (RFC 9728 PRM) — tells
- *     MCP clients where to authenticate (i.e., our Auth0 tenant)
+ *     MCP clients where to authenticate (i.e., our Hydra issuer)
  *
  * Stateless construction means a fresh McpServer + transport per POST.
  * That's fine — `buildServer` is cheap and tools are stateless. If we
@@ -22,7 +22,7 @@ import express, { type Request, type Response } from 'express';
 import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { requireBearerAuth } from '@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth.js';
-import { Auth0Verifier } from '../auth/auth0Verifier.js';
+import { JwksVerifier } from '../auth/jwksVerifier.js';
 import { buildServer } from '../server.js';
 import { MCP_RESOURCE_SCOPES } from '../auth/scopes.js';
 
@@ -31,17 +31,17 @@ export interface StartHttpOptions {
   host: string;
   /** Public-facing URL of this MCP server, e.g. `https://mcp.theperch.app`. */
   publicUrl: string;
-  /** Auth0 tenant domain, e.g. `perch.us.auth0.com`. */
-  auth0Domain: string;
-  /** API identifier registered in Auth0 for this MCP server. */
+  /** OAuth issuer URL (Hydra), e.g. `https://mcp-auth.theperch.app`. */
+  issuer: string;
+  /** Audience this MCP server accepts — the token `aud`, e.g. `https://mcp.theperch.app`. */
   audience: string;
   /** Allowed Host header values when binding non-loopback. */
   allowedHosts?: string[];
 }
 
 export async function startHttp(opts: StartHttpOptions): Promise<void> {
-  const verifier = new Auth0Verifier({
-    domain: opts.auth0Domain,
+  const verifier = new JwksVerifier({
+    issuer: opts.issuer,
     audience: opts.audience,
   });
 
@@ -65,13 +65,13 @@ export async function startHttp(opts: StartHttpOptions): Promise<void> {
   // Hydra, and the resource server (this process) validates the token. The
   // client only *follows* the advertised endpoints; it never mints tokens.
   const issuer = opts.publicUrl.replace(/\/+$/, '');
-  const hydra = `https://${opts.auth0Domain}`; // auth0Domain holds Hydra's domain post-cutover
+  const authz = opts.issuer.replace(/\/+$/, ''); // Hydra's issuer URL
   const asMetadata = {
     issuer,
-    authorization_endpoint: `${hydra}/oauth2/auth`,
-    token_endpoint: `${hydra}/oauth2/token`,
-    registration_endpoint: `${hydra}/oauth2/register`,
-    jwks_uri: `${hydra}/.well-known/jwks.json`,
+    authorization_endpoint: `${authz}/oauth2/auth`,
+    token_endpoint: `${authz}/oauth2/token`,
+    registration_endpoint: `${authz}/oauth2/register`,
+    jwks_uri: `${authz}/.well-known/jwks.json`,
     response_types_supported: ['code'],
     grant_types_supported: ['authorization_code', 'refresh_token'],
     code_challenge_methods_supported: ['S256'],
@@ -161,9 +161,9 @@ export async function startHttp(opts: StartHttpOptions): Promise<void> {
       console.error(
         `[perch-mcp-server-http] listening on http://${opts.host}:${opts.port}\n` +
         `  resource:        ${opts.audience}\n` +
-        `  authz server:    https://${opts.auth0Domain}/\n` +
+        `  authz server:    ${opts.issuer}\n` +
         `  PRM:             ${resourceMetadataUrl}\n` +
-        `  MCP endpoint:    POST /mcp (Auth0 Bearer required)`,
+        `  MCP endpoint:    POST /mcp (Bearer required)`,
       );
       resolve();
     });

@@ -1,15 +1,20 @@
 /**
- * OAuth token verifier backed by Auth0's JWKS.
+ * OAuth token verifier backed by the issuer's JWKS.
  *
  * Implements the MCP SDK's `OAuthTokenVerifier` interface. The SDK's
  * `requireBearerAuth` middleware calls `verifyAccessToken(token)` on
  * every incoming request; on success the resulting `AuthInfo` lands at
  * `req.auth` (and propagates to tool handlers via `extra.authInfo`).
  *
+ * The issuer is Ory Hydra (the MCP authorization server). We verify `iss`
+ * against `HYDRA_ISSUER` verbatim — a full URL, matched exactly (perch-api
+ * does the same) so there's no trailing-slash ambiguity — and fetch JWKS from
+ * `${issuer}/.well-known/jwks.json`.
+ *
  * We deliberately accept ONLY tokens audience'd to the MCP server
- * (`https://mcp.theperch.app`). Tokens for the main API audience are
- * rejected here even though they share the same Auth0 tenant — the MCP
- * server is a distinct resource server per OAuth.
+ * (`MCP_AUDIENCE`). Tokens for the main API audience are rejected here even
+ * though they come from the same issuer — the MCP server is a distinct
+ * resource server per OAuth.
  */
 
 import jwt, { type JwtHeader, type SigningKeyCallback } from 'jsonwebtoken';
@@ -18,23 +23,25 @@ import type { OAuthTokenVerifier } from '@modelcontextprotocol/sdk/server/auth/p
 import type { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types.js';
 import { InvalidTokenError } from '@modelcontextprotocol/sdk/server/auth/errors.js';
 
-export interface Auth0VerifierOptions {
-  /** Auth0 tenant domain, e.g. `perch.us.auth0.com`. */
-  domain: string;
-  /** API identifier registered in Auth0 for the MCP server. */
+export interface JwksVerifierOptions {
+  /** OAuth issuer URL, matched against the token `iss` exactly (e.g. `https://mcp-auth.theperch.app`). */
+  issuer: string;
+  /** Audience this MCP server accepts — the token `aud` (e.g. `https://mcp.theperch.app`). */
   audience: string;
 }
 
-export class Auth0Verifier implements OAuthTokenVerifier {
+export class JwksVerifier implements OAuthTokenVerifier {
   private readonly jwks: JwksClient;
   private readonly issuer: string;
 
-  constructor(private readonly options: Auth0VerifierOptions) {
-    if (!options.domain) throw new Error('Auth0Verifier: domain is required');
-    if (!options.audience) throw new Error('Auth0Verifier: audience is required');
-    this.issuer = `https://${options.domain}/`;
+  constructor(private readonly options: JwksVerifierOptions) {
+    if (!options.issuer) throw new Error('JwksVerifier: issuer is required');
+    if (!options.audience) throw new Error('JwksVerifier: audience is required');
+    // Use the issuer URL verbatim for the `iss` check; derive the JWKS URL from
+    // it (strip a trailing slash so the join can't double it).
+    this.issuer = options.issuer;
     this.jwks = jwksClient({
-      jwksUri: `https://${options.domain}/.well-known/jwks.json`,
+      jwksUri: `${options.issuer.replace(/\/+$/, '')}/.well-known/jwks.json`,
       cache: true,
       cacheMaxAge: 10 * 60 * 1000, // 10 min — JWKS rotation is rare
       rateLimit: true,
@@ -83,9 +90,8 @@ export class Auth0Verifier implements OAuthTokenVerifier {
       throw new InvalidTokenError(reason);
     }
 
-    // Standard OAuth `scope` claim: space-separated string. Auth0 puts
-    // permissions there when the API is configured with permissions
-    // (which we did: `read`, `write`).
+    // Standard OAuth `scope` claim: space-separated string. Hydra grants the
+    // per-resource read scopes on consent-accept.
     const scopes = typeof decoded.scope === 'string'
       ? decoded.scope.split(' ').filter(Boolean)
       : [];

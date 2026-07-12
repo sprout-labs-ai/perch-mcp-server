@@ -28,8 +28,8 @@ async function main(): Promise<void> {
     port: Number(process.env.PORT ?? '3001'),
     host: process.env.HOST ?? '127.0.0.1',
     publicUrl: readEnv('PERCH_MCP_PUBLIC_URL', 'http://127.0.0.1:3001'),
-    auth0Domain: readEnv('AUTH0_DOMAIN'),
-    audience: readEnv('AUTH0_MCP_AUDIENCE', 'https://mcp.theperch.app'),
+    issuer: readEnv('HYDRA_ISSUER'),
+    audience: readEnv('MCP_AUDIENCE', 'https://mcp.theperch.app'),
     allowedHosts: process.env.ALLOWED_HOSTS?.split(',').map((s) => s.trim()).filter(Boolean),
   });
 }
