@@ -13,7 +13,7 @@ export function registerAdminGetUser(server: McpServer): void {
         'Use when investigating a specific user (support, billing questions, debugging their data). ' +
         'Requires the MCP client to hold the `users:read` scope. Read-only.',
       inputSchema: {
-        user_id: z.string().uuid().describe('Internal Perch user UUID (not the Auth0 id).'),
+        user_id: z.string().uuid().describe('Internal Perch user UUID (not the external auth id).'),
       },
     },
     async ({ user_id }) => {

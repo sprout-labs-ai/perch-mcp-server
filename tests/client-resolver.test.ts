@@ -38,14 +38,14 @@ describe('clientFor — HTTP mode', () => {
     );
 
     const { clientFor } = await import('../src/api/client.js');
-    const client = clientFor({ authInfo: { token: 'auth0-jwt-from-http' } });
+    const client = clientFor({ authInfo: { token: 'jwt-from-http' } });
     await client.get('/api/v1/accounts');
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0];
     expect(String(url)).toBe('http://localhost:3000/api/v1/accounts');
     const headers = (init as RequestInit).headers as Record<string, string>;
-    expect(headers.Authorization).toBe('Bearer auth0-jwt-from-http');
+    expect(headers.Authorization).toBe('Bearer jwt-from-http');
   });
 
   it('builds a fresh client per call (no cross-request token leakage)', async () => {

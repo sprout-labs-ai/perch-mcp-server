@@ -25,7 +25,7 @@ export function buildServer(): McpServer {
   instrumentToolActivity(server);
 
   // User-scoped tools — authenticate as the calling user (PAT in stdio
-  // mode, forwarded Auth0 JWT in HTTP mode).
+  // mode, forwarded Hydra JWT in HTTP mode).
   registerListAccounts(server);
   registerListRecurringSeries(server);
   registerListScheduledItems(server);
