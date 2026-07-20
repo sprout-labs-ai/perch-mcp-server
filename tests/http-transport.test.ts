@@ -6,14 +6,14 @@
  *
  *   - GET /health works without auth
  *   - GET /.well-known/oauth-protected-resource returns the right
- *     RFC 9728 shape pointing at our Auth0 tenant
+ *     RFC 9728 shape pointing at our Hydra issuer
  *   - POST /mcp without auth → 401 + WWW-Authenticate with the PRM URL
  *     (this is the trigger for MCP clients to discover the auth server)
  *   - POST /mcp with a bogus token → 401 (NOT 500 — exercises the
  *     InvalidTokenError mapping in JwksVerifier)
  *   - GET /mcp and DELETE /mcp → 405 in stateless mode
  *
- * Auth0 itself is not contacted: the JWKS lookup is mocked to always
+ * Hydra itself is not contacted: the JWKS lookup is mocked to always
  * fail, which is fine because every test in this file uses either no
  * token or a syntactically invalid one. The valid-token path is
  * covered by jwksVerifier.test.ts.

@@ -1,15 +1,20 @@
 # Consumer Integrations — perch-mcp-server ⇄ perch-api handoff
 
+> **Note.** Written while Auth0 was the authorization server. The flow shape is
+> unchanged — OAuth 2.1 authorization-code + PKCE — but Hydra issues the tokens
+> now, and the `auth0_client_ids` column referenced below was renamed
+> `oauth_client_ids` in perch-api migration 068.
+
 How the **consumer Integrations** feature (Settings → Integrations in
 perch-apple: connect/disconnect assistants, view permissions, see an access
-activity log, set privacy controls) is wired to the existing **Auth0 OAuth 2.1
+activity log, set privacy controls) is wired to the existing **OAuth 2.1
 + resource-scope** mechanism the MCP server hosts at `mcp.theperch.app`.
 
 This is the source of truth for the cross-repo contract. The wire shape itself
 is owned by the iOS client — `perch-apple/.../IntegrationsDTO.swift` and
 `IntegrationLabels.swift`.
 
-> **TL;DR.** "Connect an assistant" *is* an Auth0 OAuth 2.1 authorization-code
+> **TL;DR.** "Connect an assistant" *is* an OAuth 2.1 authorization-code
 > grant for the `mcp.theperch.app` resource. perch-api owns the consumer
 > registry, connection state, activity log, and privacy controls (mostly built
 > — see `routes/integrations.ts`, migration `045_integrations.sql`).
@@ -29,7 +34,7 @@ is owned by the iOS client — `perch-apple/.../IntegrationsDTO.swift` and
 | Access activity log | **perch-api** `user_integration_activity` | Rows written by perch-mcp-server emission (§4) + the connect event. |
 | Account-wide privacy controls | **perch-api** `user_integration_privacy_controls` | `allow_integrations`, `require_approval_for_changes`. |
 | One-time connect tickets | **perch-api** `user_integration_connect_tokens` | Bound to the user at mint. |
-| OAuth clients (client_id/secret, redirect URIs), user grants, token issuance | **Auth0** | Discovered, never stored by us beyond the `azp` join (§2). |
+| OAuth clients (client_id/secret, redirect URIs), user grants, token issuance | **Hydra** | Discovered, never stored by us beyond the client-id join (§2). |
 | Scope ↔ permission mapping; calm activity summaries; privacy-error surfacing | **perch-mcp-server** | `src/auth/permissions.ts`, `src/activity/*`, `src/api/client.ts`. |
 
 **Consumer-safe invariant.** Nothing on the consumer path (`/api/v1/integrations*`)
@@ -41,7 +46,7 @@ which it opens in a Safari sheet and never renders as text.
 
 ## 2. Connection identity — the `azp → integration` join  ⚠️ JOINT
 
-Each connected assistant is an **Auth0 OAuth client**. Its access token carries
+Each connected assistant is an **OAuth client registered with Hydra**. Its access token carries
 `azp` (authorized party = the `client_id` that requested the token).
 perch-mcp-server's `JwksVerifier` already surfaces this as `authInfo.clientId`,
 and forwards the token verbatim to perch-api, which reads `sub` → user.
@@ -55,20 +60,22 @@ A connected assistant brand may register more than one OAuth client (prod/dev,
 ChatGPT vs ChatGPT-Enterprise), so use an array:
 
 ```sql
--- perch-api migration (e.g. 046_integration_oauth_clients.sql)
-ALTER TABLE integrations ADD COLUMN auth0_client_ids TEXT[] NOT NULL DEFAULT '{}';
--- backfill once the Auth0 clients exist:
---   UPDATE integrations SET auth0_client_ids = ARRAY['<chatgpt prod client_id>'] WHERE id = 'chatgpt';
---   UPDATE integrations SET auth0_client_ids = ARRAY['<claude prod client_id>']  WHERE id = 'claude';
-CREATE INDEX IF NOT EXISTS idx_integrations_auth0_client_ids
-  ON integrations USING GIN (auth0_client_ids);
+-- perch-api migration (046_integration_oauth_clients.sql; the column was
+-- named auth0_client_ids until 068 renamed it — it is the azp -> slug join key,
+-- never an Auth0 concept)
+ALTER TABLE integrations ADD COLUMN oauth_client_ids TEXT[] NOT NULL DEFAULT '{}';
+-- backfill once the OAuth clients exist:
+--   UPDATE integrations SET oauth_client_ids = ARRAY['<chatgpt prod client_id>'] WHERE id = 'chatgpt';
+--   UPDATE integrations SET oauth_client_ids = ARRAY['<claude prod client_id>']  WHERE id = 'claude';
+CREATE INDEX IF NOT EXISTS idx_integrations_oauth_client_ids
+  ON integrations USING GIN (oauth_client_ids);
 ```
 
 perch-api captures `azp` in `getUserFromAuth` for MCP-audienced tokens
 (`req.integrationClientId = req.auth.azp`) and resolves it to a slug:
 
 ```sql
-SELECT id FROM integrations WHERE $1 = ANY(auth0_client_ids) AND is_available LIMIT 1;
+SELECT id FROM integrations WHERE $1 = ANY(oauth_client_ids) AND is_available LIMIT 1;
 ```
 
 `azp` is **never** returned to the client — it is an internal join key only.
@@ -80,7 +87,7 @@ SELECT id FROM integrations WHERE $1 = ANY(auth0_client_ids) AND is_available LI
 `routes/integrations.ts` already mints a one-time, hashed, short-lived ticket
 and returns a `connectUrl` (→ Safari sheet); the consent page POSTs the ticket
 to `/:id/connect/complete`, which flips the connection to `connected` and seeds
-permission rows. **What that consent page does — the Auth0 handshake — is the
+permission rows. **What that consent page does — the OAuth handshake — is the
 main open follow-up.** Designed end to end:
 
 1. **`POST /api/v1/integrations/:id/connect`** (built). Honors
@@ -88,16 +95,16 @@ main open follow-up.** Designed end to end:
    returns `connectUrl = https://theperch.app/integrations/:id/authorize?ticket=…`.
 2. **Hosted consent page** (`theperch.app`, ⚠️ not built). Validates the ticket
    (user-bound), shows the calm permission preview (registry defaults), and on
-   "Allow" starts an **Auth0 OAuth 2.1 authorization-code + PKCE** request:
+   "Allow" starts an **OAuth 2.1 authorization-code + PKCE** request:
    - `audience = https://mcp.theperch.app`
-   - `client_id =` the integration's Auth0 client
+   - `client_id =` the integration's OAuth client
    - `scope =` the resource scopes for the integration's default permissions,
      derived via the §5 mapping (`PERMISSION_TO_SCOPE`). e.g. defaults
      `current_balance, upcoming_items, forecast, activity_history` →
      `read:accounts read:schedule read:forecast read:series`.
    - `redirect_uri =` the assistant's own callback (ChatGPT/Claude complete the
      grant on their side; they are the OAuth client).
-3. **Auth0** records the user's grant and issues the assistant a token for the
+3. **Hydra** records the user's grant and issues the assistant a token for the
    MCP audience carrying exactly the granted scopes.
 4. The consent page calls **`POST /:id/connect/complete`** with the ticket
    (built) → connection `connected`, permission rows seeded.
@@ -107,11 +114,11 @@ main open follow-up.** Designed end to end:
 `default_permission_keys`. To make the detail screen reflect *what was actually
 granted*, seed from the granted scopes instead, using
 `permissionsFromGrantedScopes(grantedScopes)` (§5). The granted scope set comes
-from the Auth0 grant (introspect, or read the issued token's `scope`) at
+from the grant (introspect, or read the issued token's `scope`) at
 completion. Until that's wired, registry defaults are a faithful approximation
 (the consent page requests exactly the default permissions' scopes).
 
-**What's discovered from Auth0 vs stored in perch-api:** Auth0 owns the client
+**What's discovered from the authorization server vs stored in perch-api:** Hydra owns the client
 definitions, the user→client grant, and token issuance. perch-api stores only
 the *projection* a consumer needs — connection status, the granted permission
 keys, timestamps — plus the `azp` join. No secrets or tokens are stored.
@@ -189,7 +196,7 @@ two before sending to the client).
   (middleware on MCP-reachable routes, after `getUserFromAuth`). perch-mcp-server
   already maps that code to calm guidance (`src/api/client.ts`). Toggling it off
   should also mark the user's connections `not_connected` and ideally revoke the
-  Auth0 grants so issued tokens stop working (forward-looking).
+  Hydra grants so issued tokens stop working (forward-looking).
 
 **`require_approval_for_changes` (gate writes).** All tools are read-only today,
 so nothing is gated yet. Forward-looking design: a future write/"changes" tool
@@ -203,12 +210,12 @@ until those tools exist.
 ## 7. Open items / jointly owned
 
 1. **`azp → integration` mapping** (§2) — perch-api migration adds
-   `integrations.auth0_client_ids`, captures `azp`, resolves the slug. *Blocks
+   `integrations.oauth_client_ids`, captures `azp`, resolves the slug. *Blocks
    activity emission and connected-scope display from being assistant-aware.*
 2. **Activity sink endpoint** `POST /api/v1/integrations/activity` (§4) —
    perch-api. *This server's emit code already targets it; until it ships,
    emission is a harmless swallowed 404.*
-3. **Hosted consent page + granted-scope persistence** (§3) — the Auth0
+3. **Hosted consent page + granted-scope persistence** (§3) — the
    authorize handshake and seeding permission rows from the actual grant.
 4. **Per-request `allow_integrations` enforcement** + grant revocation on
    toggle-off (§6) — perch-api middleware; client mapping is done here.

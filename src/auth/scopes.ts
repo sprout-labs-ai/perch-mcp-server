@@ -2,7 +2,7 @@
  * Granular per-resource read scopes for the MCP audience
  * (`mcp.theperch.app`).
  *
- * These mirror the scopes defined on the MCP Auth0 resource server and are
+ * These mirror the scopes defined on the MCP resource server (Hydra) and are
  * enforced per-tool by perch-api's `requireResourceScope` middleware. They
  * are advertised in the Protected Resource Metadata (RFC 9728) so an MCP
  * client can request only the subset of resources it actually needs

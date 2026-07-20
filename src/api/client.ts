@@ -6,7 +6,7 @@
  *   - **stdio mode** — token comes from the `PERCH_API_TOKEN` env var
  *     and is read once at first use. Lazy + cached so tests can import
  *     this module without an env var present.
- *   - **HTTP mode** — token comes per-request from the validated Auth0
+ *   - **HTTP mode** — token comes per-request from the validated Hydra
  *     access token (`extra.authInfo.token`). A fresh client is built
  *     for each tool invocation.
  *
@@ -170,7 +170,7 @@ function getStdioClient(): PerchClient {
 
 /**
  * Pick the right PerchClient for the current tool invocation.
- *   - HTTP mode: `extra.authInfo.token` is the validated Auth0 JWT,
+ *   - HTTP mode: `extra.authInfo.token` is the validated Hydra JWT,
  *     which perch-api accepts (see middleware/auth.ts checkJwt).
  *   - stdio mode: env-cached PAT.
  *

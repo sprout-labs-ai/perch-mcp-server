@@ -27,7 +27,7 @@ Plus five **admin (machine-to-machine)** tools — registered only when M2M cred
 | Transport | Auth | Use when |
 |---|---|---|
 | **stdio** (default) | PAT (`PERCH_API_TOKEN` env) | Local install via Claude Desktop / Cursor / Zed / Claude Code |
-| **HTTP** (`--http`) | Auth0 OAuth 2.1 (Bearer) | Hosting at `mcp.theperch.app` for ChatGPT and any remote-only MCP client |
+| **HTTP** (`--http`) | OAuth 2.1 via Hydra (Bearer) | Hosting at `mcp.theperch.app` for ChatGPT and any remote-only MCP client |
 
 ## Install
 
@@ -109,7 +109,7 @@ immediately — perch-api re-checks the client row on every request.
 The Perch iOS app's **Integrations** area — connect/disconnect assistants like
 ChatGPT and Claude, view their permissions, see an access activity log, and set
 privacy controls — is driven by *this* OAuth 2.1 + resource-scope flow.
-"Connect an assistant" is an Auth0 authorization-code grant for the
+"Connect an assistant" is an OAuth authorization-code grant for the
 `mcp.theperch.app` resource; the granted scopes become the permissions a person
 sees.
 

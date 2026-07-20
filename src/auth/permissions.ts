@@ -4,7 +4,7 @@
  * Two vocabularies describe the same thing from two altitudes:
  *
  *   - **MCP resource scopes** (`read:accounts`, `read:series`, `read:schedule`,
- *     `read:forecast`) are the technical, per-tool scopes the Auth0 MCP
+ *     `read:forecast`) are the technical, per-tool scopes the Hydra MCP
  *     resource server issues and perch-api enforces (`requireResourceScope`).
  *     They are what an assistant's access token actually carries. See
  *     `scopes.ts`.

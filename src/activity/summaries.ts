@@ -2,7 +2,7 @@
  * Privacy-safe activity summaries for each user-scoped tool.
  *
  * Every successful tool invocation made by a *connected assistant* (HTTP
- * transport, Auth0 token carrying an `azp` client id) produces one access-log
+ * transport, Hydra token carrying a client id) produces one access-log
  * entry that the consumer Integrations screen surfaces via
  * `GET /api/v1/integrations/activity`.
  *
@@ -13,7 +13,7 @@
  *   - the consumer `permissionKey` the access exercised, for future filtering.
  *
  * The user identity and which assistant ran the tool are NOT carried in the
- * body — perch-api derives both from the forwarded Auth0 token (the `sub` →
+ * body — perch-api derives both from the forwarded Hydra token (the `sub` →
  * user, the `azp` → integration). So this map holds only the two opaque,
  * non-identifying tokens above. No raw queries, no IDs, no transport detail.
  *

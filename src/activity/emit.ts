@@ -6,7 +6,7 @@
  *
  *     POST /api/v1/integrations/activity   { summary, permissionKey }
  *
- * perch-api authenticates the SAME forwarded Auth0 token (so it derives the
+ * perch-api authenticates the SAME forwarded Hydra token (so it derives the
  * user from `sub`), maps the token's `azp` client id to an integration, writes
  * one `user_integration_activity` row, and bumps the connection's
  * `last_used_at`. See the consumer integrations handoff doc for the perch-api
