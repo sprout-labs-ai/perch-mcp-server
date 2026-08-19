@@ -1,0 +1,35 @@
+# CodeRabbit review configuration.
+# Reference: https://docs.coderabbit.ai/reference/yaml-template
+#
+# Added 2026-08-19, identical across every sprout-labs-ai repo on purpose: the
+# whole point is that no repo quietly behaves differently from its siblings.
+# Two defaults were costing us something real.
+#
+# 1. Auto-review only covers a repo's DEFAULT branch. In the-rink-admin the
+#    convention is feature -> staging -> main, so every PR was silently skipped
+#    with "Auto reviews are disabled on base/target branches other than the
+#    default branch" — the repo was getting no review at all except the periodic
+#    staging -> main rollups, which arrive ~60 commits at a time and are the
+#    worst possible unit to review. Naming staging below fixes that. Repos with
+#    no staging branch are unaffected; the pattern simply never matches.
+#
+# 2. auto_incremental_review defaults to true, re-reviewing the entire PR on
+#    every push. A PR you push three follow-up fixes to costs four reviews, all
+#    re-reading the same files. That volume is what drives the per-developer
+#    hourly throttle (Pro+ nominally allows 10/hour, but sustained weekly volume
+#    throttles it down — we were seeing 3), and it is what would make per-file
+#    usage-based billing expensive if it is ever switched on.
+#
+#    So it is off. Push freely; when the PR is actually ready, comment
+#    `@coderabbitai review` to request one deliberate pass. The tradeoff is real
+#    and worth stating: fixes pushed after that pass are NOT re-reviewed unless
+#    you ask again.
+reviews:
+  auto_review:
+    auto_incremental_review: false
+    base_branches:
+      - main
+      - staging
+    ignore_title_keywords:
+      - WIP
+      - DO NOT MERGE
