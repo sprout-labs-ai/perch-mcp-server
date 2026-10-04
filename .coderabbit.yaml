@@ -38,6 +38,13 @@ reviews:
     enabled: false
     labels:
       - run-checks
+    # Dependabot labels its own PRs `run-checks` so CI runs on them (perch-api's
+    # .github/dependabot.yml), and a version bump isn't worth a review. Both
+    # spellings: GitHub's login is `dependabot[bot]`, and the schema says only
+    # "exact match", not which form it compares against.
+    ignore_usernames:
+      - "dependabot[bot]"
+      - dependabot
     auto_incremental_review: false
     base_branches:
       - main
