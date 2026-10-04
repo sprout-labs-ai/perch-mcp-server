@@ -24,8 +24,20 @@
 #    `@coderabbitai review` to request one deliberate pass. The tradeoff is real
 #    and worth stating: fixes pushed after that pass are NOT re-reviewed unless
 #    you ask again.
+#
+# 3. (2026-10-03) Even one review per PR, on open, used up
+#    the allowance almost at once: a day here is 20-odd small PRs, most of
+#    them cleanups that nobody needed reviewed. So nothing is reviewed until
+#    asked. Adding the `run-checks` label asks — the same label that runs CI
+#    (.github/workflows/ci.yml), so one action spends both when a PR is
+#    actually done. With `enabled: false`, a positive label match is what
+#    triggers a review (per the schema's description of `labels`).
+#    `@coderabbitai review` still works for a one-off.
 reviews:
   auto_review:
+    enabled: false
+    labels:
+      - run-checks
     auto_incremental_review: false
     base_branches:
       - main
