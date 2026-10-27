@@ -28,18 +28,29 @@ export interface JwksVerifierOptions {
   issuer: string;
   /** Audience this MCP server accepts — the token `aud` (e.g. `https://mcp.theperch.app`). */
   audience: string;
+  /**
+   * Previous issuer URL, accepted for `iss` during a domain-move grace period.
+   * Same Hydra and keys; JWKS is fetched from the live `issuer` only.
+   */
+  legacyIssuer?: string;
+  /** Previous audience string, accepted alongside `audience` during the same grace period. */
+  legacyAudience?: string;
 }
 
 export class JwksVerifier implements OAuthTokenVerifier {
   private readonly jwks: JwksClient;
-  private readonly issuer: string;
+  private readonly issuers: [string, ...string[]];
+  private readonly audiences: [string, ...string[]];
 
   constructor(private readonly options: JwksVerifierOptions) {
     if (!options.issuer) throw new Error('JwksVerifier: issuer is required');
     if (!options.audience) throw new Error('JwksVerifier: audience is required');
     // Use the issuer URL verbatim for the `iss` check; derive the JWKS URL from
     // it (strip a trailing slash so the join can't double it).
-    this.issuer = options.issuer;
+    this.issuers = [options.issuer];
+    if (options.legacyIssuer && options.legacyIssuer !== options.issuer) this.issuers.push(options.legacyIssuer);
+    this.audiences = [options.audience];
+    if (options.legacyAudience && options.legacyAudience !== options.audience) this.audiences.push(options.legacyAudience);
     this.jwks = jwksClient({
       jwksUri: `${options.issuer.replace(/\/+$/, '')}/.well-known/jwks.json`,
       cache: true,
@@ -69,11 +80,11 @@ export class JwksVerifier implements OAuthTokenVerifier {
             });
           },
           {
-            audience: this.options.audience,
-            issuer: this.issuer,
+            audience: this.audiences,
+            issuer: this.issuers,
             algorithms: ['RS256'],
           },
-          (err, payload) => {
+          (err: jwt.VerifyErrors | null, payload: string | jwt.JwtPayload | undefined) => {
             if (err) reject(err);
             else if (!payload || typeof payload === 'string') reject(new Error('JWT payload missing'));
             else resolve(payload);

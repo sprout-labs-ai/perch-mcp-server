@@ -35,6 +35,9 @@ export interface StartHttpOptions {
   issuer: string;
   /** Audience this MCP server accepts — the token `aud`, e.g. `https://mcp.theperch.app`. */
   audience: string;
+  /** Previous issuer / audience, still accepted during a domain-move grace period. */
+  legacyIssuer?: string;
+  legacyAudience?: string;
   /** Allowed Host header values when binding non-loopback. */
   allowedHosts?: string[];
 }
@@ -43,6 +46,8 @@ export async function startHttp(opts: StartHttpOptions): Promise<void> {
   const verifier = new JwksVerifier({
     issuer: opts.issuer,
     audience: opts.audience,
+    legacyIssuer: opts.legacyIssuer,
+    legacyAudience: opts.legacyAudience,
   });
 
   const app = createMcpExpressApp({

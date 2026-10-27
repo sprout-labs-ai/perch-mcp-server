@@ -196,3 +196,26 @@ describe('JwksVerifier.verifyAccessToken — rejection cases', () => {
       .rejects.toBeInstanceOf(InvalidTokenError);
   });
 });
+
+describe('JwksVerifier — domain-move grace period', () => {
+  const LEGACY_ISSUER = 'https://mcp-auth.legacy.test';
+  const LEGACY_AUDIENCE = 'https://mcp.legacy.test';
+  const legacyVerifier = () =>
+    new JwksVerifier({ issuer: ISSUER, audience: AUDIENCE, legacyIssuer: LEGACY_ISSUER, legacyAudience: LEGACY_AUDIENCE });
+
+  it('accepts a token minted under the legacy issuer and audience', async () => {
+    const token = signToken(basicClaims({ iss: LEGACY_ISSUER, aud: LEGACY_AUDIENCE }));
+    const info = await legacyVerifier().verifyAccessToken(token);
+    expect(info.expiresAt).toBeDefined();
+  });
+
+  it('accepts a legacy-audience token re-minted under the new issuer', async () => {
+    const token = signToken(basicClaims({ iss: ISSUER, aud: LEGACY_AUDIENCE }));
+    await expect(legacyVerifier().verifyAccessToken(token)).resolves.toBeDefined();
+  });
+
+  it('still rejects the legacy issuer when no legacy options are set', async () => {
+    const token = signToken(basicClaims({ iss: LEGACY_ISSUER, aud: AUDIENCE }));
+    await expect(makeVerifier().verifyAccessToken(token)).rejects.toBeInstanceOf(InvalidTokenError);
+  });
+});
