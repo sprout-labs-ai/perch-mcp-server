@@ -30,6 +30,9 @@ async function main(): Promise<void> {
     publicUrl: readEnv('PERCH_MCP_PUBLIC_URL', 'http://127.0.0.1:3001'),
     issuer: readEnv('HYDRA_ISSUER'),
     audience: readEnv('MCP_AUDIENCE', 'https://mcp.theperch.app'),
+    // Grace-period values after a domain move (unset once old tokens expire).
+    legacyIssuer: process.env.HYDRA_LEGACY_ISSUER || undefined,
+    legacyAudience: process.env.MCP_LEGACY_AUDIENCE || undefined,
     allowedHosts: process.env.ALLOWED_HOSTS?.split(',').map((s) => s.trim()).filter(Boolean),
   });
 }

@@ -39,6 +39,10 @@ services:
         sync: false
       - key: MCP_AUDIENCE           # e.g. https://mcp-staging.theperch.app
         sync: false
+      - key: HYDRA_LEGACY_ISSUER    # optional, domain-move grace period only
+        sync: false
+      - key: MCP_LEGACY_AUDIENCE    # optional, domain-move grace period only
+        sync: false
       - key: PERCH_MCP_PUBLIC_URL    # e.g. https://mcp-staging.theperch.app
         sync: false
       - key: PERCH_API_URL           # e.g. https://api-staging.theperch.app
