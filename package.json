@@ -16,7 +16,8 @@
     "dev": "doppler run -- tsx src/index.ts",
     "start": "node dist/index.js --http",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
@@ -47,6 +48,7 @@
     "zod": "^3.25.0"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^2.1.9",
     "tsx": "^4.0.0",
     "vitest": "^2.0.0"
   }
