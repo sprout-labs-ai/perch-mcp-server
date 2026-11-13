@@ -7,7 +7,13 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { M2MTokenProvider, M2MAuthError } from '../src/auth/m2mToken.js';
+import {
+  M2MTokenProvider,
+  M2MAuthError,
+  getM2MProvider,
+  isM2MConfigured,
+  __resetM2MProviderForTests,
+} from '../src/auth/m2mToken.js';
 
 const BASE = 'http://localhost:3000';
 
@@ -129,5 +135,88 @@ describe('M2MAuthError', () => {
     const err = new M2MAuthError(401, 'nope');
     expect(err).toBeInstanceOf(Error);
     expect(err.status).toBe(401);
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Failure shapes + the env-backed singleton
+
+describe('M2MTokenProvider failure shapes', () => {
+  it('wraps a network failure without a status', async () => {
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('ECONNREFUSED'));
+    const err = await makeProvider().getToken().catch((e) => e);
+    expect(err).toBeInstanceOf(M2MAuthError);
+    expect(err.status).toBeUndefined();
+    expect(err.message).toMatch(/Could not reach perch-api token endpoint: ECONNREFUSED/);
+  });
+
+  it.each([
+    ['error_description', JSON.stringify({ error: 'x', error_description: 'client disabled' }), 'client disabled'],
+    ['error', JSON.stringify({ error: 'invalid_request' }), 'invalid_request'],
+    ['non-JSON body', '<html>', 'HTTP 400'],
+  ])('reports other statuses using the %s', async (_label, body, detail) => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(body, { status: 400 }));
+    const err = await makeProvider().getToken().catch((e) => e);
+    expect(err.status).toBe(400);
+    expect(err.message).toBe(`Token exchange failed: ${detail}`);
+  });
+
+  it('rejects a 200 response missing access_token or expires_in', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ access_token: 't', expires_in: '300' }), { status: 200 }),
+    );
+    const err = await makeProvider().getToken().catch((e) => e);
+    expect(err).toBeInstanceOf(M2MAuthError);
+    expect(err.message).toMatch(/unexpected response shape/);
+  });
+
+  it('keeps caching a token whose TTL is shorter than the refresh skew (half-life)', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => tokenResponse('short', 10));
+    const p = makeProvider();
+    await p.getToken();
+    vi.advanceTimersByTime(4_000); // < 5s (half of 10s): still cached
+    await p.getToken();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(2_000); // past half-life: refresh
+    await p.getToken();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('getM2MProvider', () => {
+  const ORIGINAL_ENV = { ...process.env };
+  afterEach(() => {
+    process.env = { ...ORIGINAL_ENV };
+    __resetM2MProviderForTests();
+  });
+
+  it('throws an actionable error when credentials are missing', () => {
+    delete process.env.PERCH_MCP_CLIENT_ID;
+    delete process.env.PERCH_MCP_CLIENT_SECRET;
+    expect(isM2MConfigured()).toBe(false);
+    expect(() => getM2MProvider()).toThrow(/PERCH_MCP_CLIENT_ID and PERCH_MCP_CLIENT_SECRET/);
+  });
+
+  it('treats whitespace-only credentials as missing', () => {
+    process.env.PERCH_MCP_CLIENT_ID = '  ';
+    process.env.PERCH_MCP_CLIENT_SECRET = 'secret';
+    expect(isM2MConfigured()).toBe(false);
+  });
+
+  it('caches one provider, posting to the default API URL, until reset', async () => {
+    process.env.PERCH_MCP_CLIENT_ID = ' mcp_env ';
+    process.env.PERCH_MCP_CLIENT_SECRET = 'secret';
+    delete process.env.PERCH_API_URL;
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => tokenResponse('t', 300));
+
+    const a = getM2MProvider();
+    expect(getM2MProvider()).toBe(a);
+    await a.getToken();
+    expect(String(fetchMock.mock.calls[0][0])).toBe('https://api.perch.app/api/v1/oauth/token');
+    expect(JSON.parse(String((fetchMock.mock.calls[0][1] as RequestInit).body)).client_id).toBe('mcp_env');
+
+    __resetM2MProviderForTests();
+    expect(getM2MProvider()).not.toBe(a);
   });
 });

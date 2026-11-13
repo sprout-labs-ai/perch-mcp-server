@@ -13,7 +13,7 @@ export function registerAdminGetUserActivity(server: McpServer): void {
         'user did recently when triaging a support report. ' +
         'Requires the MCP client to hold the `users:read` scope. Read-only.',
       inputSchema: {
-        user_id: z.string().uuid().describe('Internal Perch user UUID.'),
+        user_id: z.string().guid().describe('Internal Perch user UUID.'),
         limit: z.number().int().min(1).max(200).optional().describe('Max events to return. Default 50.'),
       },
     },

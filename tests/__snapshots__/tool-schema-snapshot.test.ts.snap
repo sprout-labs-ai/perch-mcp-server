@@ -11,10 +11,10 @@ exports[`tools/list contract > matches the committed snapshot 1`] = `
     },
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "additionalProperties": false,
       "properties": {
         "page": {
           "description": "1-based page number. Default 1.",
+          "maximum": 9007199254740991,
           "minimum": 1,
           "type": "integer",
         },
@@ -31,6 +31,7 @@ exports[`tools/list contract > matches the committed snapshot 1`] = `
         "user_id": {
           "description": "Internal Perch user UUID.",
           "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$",
           "type": "string",
         },
       },
@@ -51,7 +52,6 @@ exports[`tools/list contract > matches the committed snapshot 1`] = `
     },
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "additionalProperties": false,
       "properties": {
         "cursor": {
           "description": "Opaque pagination cursor from a previous response.",
@@ -79,6 +79,7 @@ exports[`tools/list contract > matches the committed snapshot 1`] = `
         "user_id": {
           "description": "Internal Perch user UUID.",
           "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$",
           "type": "string",
         },
       },
@@ -99,11 +100,11 @@ exports[`tools/list contract > matches the committed snapshot 1`] = `
     },
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "additionalProperties": false,
       "properties": {
         "user_id": {
           "description": "Internal Perch user UUID (not the external auth id).",
           "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$",
           "type": "string",
         },
       },
@@ -124,7 +125,6 @@ exports[`tools/list contract > matches the committed snapshot 1`] = `
     },
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "additionalProperties": false,
       "properties": {
         "limit": {
           "description": "Max events to return. Default 50.",
@@ -135,6 +135,7 @@ exports[`tools/list contract > matches the committed snapshot 1`] = `
         "user_id": {
           "description": "Internal Perch user UUID.",
           "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$",
           "type": "string",
         },
       },
@@ -155,10 +156,10 @@ exports[`tools/list contract > matches the committed snapshot 1`] = `
     },
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "additionalProperties": false,
       "properties": {
         "page": {
           "description": "1-based page number. Default 1.",
+          "maximum": 9007199254740991,
           "minimum": 1,
           "type": "integer",
         },
@@ -192,11 +193,11 @@ exports[`tools/list contract > matches the committed snapshot 1`] = `
     },
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "additionalProperties": false,
       "properties": {
         "accountId": {
           "description": "UUID of the Perch account.",
           "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$",
           "type": "string",
         },
         "days": {
@@ -246,11 +247,11 @@ exports[`tools/list contract > matches the committed snapshot 1`] = `
     },
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "additionalProperties": false,
       "properties": {
         "accountId": {
           "description": "UUID of the Perch account. Get this from list_accounts.",
           "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$",
           "type": "string",
         },
         "includeEnded": {
@@ -275,11 +276,11 @@ exports[`tools/list contract > matches the committed snapshot 1`] = `
     },
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "additionalProperties": false,
       "properties": {
         "accountId": {
           "description": "UUID of the Perch account. Get this from list_accounts.",
           "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$",
           "type": "string",
         },
         "from": {
@@ -316,11 +317,11 @@ exports[`tools/list contract > matches the committed snapshot 1`] = `
     },
     "inputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "additionalProperties": false,
       "properties": {
         "accountId": {
           "description": "UUID of the Perch account.",
           "format": "uuid",
+          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$",
           "type": "string",
         },
         "days": {
@@ -340,7 +341,6 @@ exports[`tools/list contract > matches the committed snapshot 1`] = `
         "hypotheticalItems": {
           "description": "Non-empty list of hypothetical items to merge into the projection. Up to 50.",
           "items": {
-            "additionalProperties": false,
             "properties": {
               "amount": {
                 "description": "Signed amount as a decimal string. Negative for expense ("-500.00"), positive for income ("1200.00").",

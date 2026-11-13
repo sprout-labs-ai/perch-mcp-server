@@ -24,7 +24,7 @@ export function registerListScheduledItems(server: McpServer): void {
       inputSchema: {
         accountId: z
           .string()
-          .uuid()
+          .guid()
           .describe('UUID of the Perch account. Get this from list_accounts.'),
         from: z
           .string()

@@ -13,7 +13,7 @@ export function registerAdminGetBrandExposures(server: McpServer): void {
         'Use to debug "why is the app no longer suggesting brand X for this user" questions. ' +
         'Requires the MCP client to hold the `brand_exposures:read` scope. Read-only.',
       inputSchema: {
-        user_id: z.string().uuid().describe('Internal Perch user UUID.'),
+        user_id: z.string().guid().describe('Internal Perch user UUID.'),
         page: z.number().int().min(1).optional().describe('1-based page number. Default 1.'),
         pageSize: z.number().int().min(1).max(200).optional().describe('Rows per page. Default 50, max 200.'),
         sort: z
