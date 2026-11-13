@@ -1,0 +1,384 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`tools/list contract > matches the committed snapshot 1`] = `
+[
+  {
+    "_meta": undefined,
+    "annotations": undefined,
+    "description": "Fetch a user's per-brand exposure signals — impression/selection counts and the derived suppression state (normal / demoted / suppressed) plus when the engine auto-suppressed each brand. Use to debug "why is the app no longer suggesting brand X for this user" questions. Requires the MCP client to hold the \`brand_exposures:read\` scope. Read-only.",
+    "execution": {
+      "taskSupport": "forbidden",
+    },
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "page": {
+          "description": "1-based page number. Default 1.",
+          "minimum": 1,
+          "type": "integer",
+        },
+        "pageSize": {
+          "description": "Rows per page. Default 50, max 200.",
+          "maximum": 200,
+          "minimum": 1,
+          "type": "integer",
+        },
+        "sort": {
+          "description": "Sort key, e.g. "last_shown" (default). Passed through to the API.",
+          "type": "string",
+        },
+        "user_id": {
+          "description": "Internal Perch user UUID.",
+          "format": "uuid",
+          "type": "string",
+        },
+      },
+      "required": [
+        "user_id",
+      ],
+      "type": "object",
+    },
+    "name": "admin_get_brand_exposures",
+    "title": "Admin: get a user's brand exposures",
+  },
+  {
+    "_meta": undefined,
+    "annotations": undefined,
+    "description": "Fetch the suggestions currently suppressed for a user — both recurring suggestions the user dismissed and Plaid candidate suggestions that were hidden. Unions across sources, ordered by when they were suppressed. Use to answer "why isn't Perch suggesting this recurring charge" or to audit a user's dismissed suggestions. Requires the MCP client to hold the \`suppressed_suggestions:read\` scope. Read-only.",
+    "execution": {
+      "taskSupport": "forbidden",
+    },
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "cursor": {
+          "description": "Opaque pagination cursor from a previous response.",
+          "type": "string",
+        },
+        "includeRestored": {
+          "description": "Include suggestions the user later restored. Default false.",
+          "type": "boolean",
+        },
+        "kind": {
+          "description": "Filter by suppression source. Default "all".",
+          "enum": [
+            "recurring",
+            "plaid_candidate",
+            "all",
+          ],
+          "type": "string",
+        },
+        "limit": {
+          "description": "Max rows. Default 50, max 200.",
+          "maximum": 200,
+          "minimum": 1,
+          "type": "integer",
+        },
+        "user_id": {
+          "description": "Internal Perch user UUID.",
+          "format": "uuid",
+          "type": "string",
+        },
+      },
+      "required": [
+        "user_id",
+      ],
+      "type": "object",
+    },
+    "name": "admin_get_suppressed_suggestions",
+    "title": "Admin: get a user's suppressed suggestions",
+  },
+  {
+    "_meta": undefined,
+    "annotations": undefined,
+    "description": "Fetch the full admin detail record for a single Perch user by their internal UUID — profile, customer/billing linkage, subscription + access state, household, and Plaid items. Use when investigating a specific user (support, billing questions, debugging their data). Requires the MCP client to hold the \`users:read\` scope. Read-only.",
+    "execution": {
+      "taskSupport": "forbidden",
+    },
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "user_id": {
+          "description": "Internal Perch user UUID (not the external auth id).",
+          "format": "uuid",
+          "type": "string",
+        },
+      },
+      "required": [
+        "user_id",
+      ],
+      "type": "object",
+    },
+    "name": "admin_get_user",
+    "title": "Admin: get a user",
+  },
+  {
+    "_meta": undefined,
+    "annotations": undefined,
+    "description": "Fetch a user's recent activity feed — auth lifecycle events, sync events, match/recurring signals, and other timeline entries the admin dashboard surfaces. Use to reconstruct what a user did recently when triaging a support report. Requires the MCP client to hold the \`users:read\` scope. Read-only.",
+    "execution": {
+      "taskSupport": "forbidden",
+    },
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "limit": {
+          "description": "Max events to return. Default 50.",
+          "maximum": 200,
+          "minimum": 1,
+          "type": "integer",
+        },
+        "user_id": {
+          "description": "Internal Perch user UUID.",
+          "format": "uuid",
+          "type": "string",
+        },
+      },
+      "required": [
+        "user_id",
+      ],
+      "type": "object",
+    },
+    "name": "admin_get_user_activity",
+    "title": "Admin: get a user's activity",
+  },
+  {
+    "_meta": undefined,
+    "annotations": undefined,
+    "description": "List Perch users, paginated and filtered by account status. Returns a page of user summaries plus pagination metadata. Use to browse the user base or find recently-created accounts. This endpoint does NOT do free-text search — to find a specific user by email or name, use the dedicated search surface in the admin portal. Requires the MCP client to hold the \`users:read\` scope. Read-only.",
+    "execution": {
+      "taskSupport": "forbidden",
+    },
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "page": {
+          "description": "1-based page number. Default 1.",
+          "minimum": 1,
+          "type": "integer",
+        },
+        "pageSize": {
+          "description": "Rows per page. Default 20.",
+          "maximum": 100,
+          "minimum": 1,
+          "type": "integer",
+        },
+        "status": {
+          "description": "Account status filter. Default "active".",
+          "enum": [
+            "active",
+            "deleted",
+            "all",
+          ],
+          "type": "string",
+        },
+      },
+      "type": "object",
+    },
+    "name": "admin_list_users",
+    "title": "Admin: list users",
+  },
+  {
+    "_meta": undefined,
+    "annotations": undefined,
+    "description": "Project a Perch account's balance forward over the next N days as a time series. Returns server-computed running balances so you do NOT need to do balance math yourself — just describe or chart the points. Use this when the user asks "what will my balance look like in 30 days", "graph my cash flow", or anything about future balance trajectory. Two granularities: "daily" emits one point per calendar day for a contiguous chart (best for plotting); "event" emits a starting point plus one point per event-bearing day (smaller, best for tables). Call list_accounts first if you don't already know the accountId. Requires the \`read:forecast\` scope. Read-only.",
+    "execution": {
+      "taskSupport": "forbidden",
+    },
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "accountId": {
+          "description": "UUID of the Perch account.",
+          "format": "uuid",
+          "type": "string",
+        },
+        "days": {
+          "description": "How many days forward to project from today. Default 30, max 365.",
+          "maximum": 365,
+          "minimum": 1,
+          "type": "integer",
+        },
+        "granularity": {
+          "description": ""daily" for plot-ready contiguous points, "event" for sparse table-friendly output. Default "daily".",
+          "enum": [
+            "daily",
+            "event",
+          ],
+          "type": "string",
+        },
+      },
+      "required": [
+        "accountId",
+      ],
+      "type": "object",
+    },
+    "name": "get_forecast_curve",
+    "title": "Get a chart-ready balance projection",
+  },
+  {
+    "_meta": undefined,
+    "annotations": undefined,
+    "description": "List the user's Perch accounts with their current balances. Use this when the user asks how much money they have, where their money is, or whenever you need an accountId before calling another tool. Requires the \`read:accounts\` scope. Read-only.",
+    "execution": {
+      "taskSupport": "forbidden",
+    },
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {},
+      "type": "object",
+    },
+    "name": "list_accounts",
+    "title": "List Perch accounts",
+  },
+  {
+    "_meta": undefined,
+    "annotations": undefined,
+    "description": "List the recurring payments and income (series) on a specific Perch account. Each series is a template — for example "Netflix every month $15.99" or "Paycheck biweekly $2,400." Call list_accounts first if you don't already know the accountId. Requires the \`read:series\` scope. Read-only.",
+    "execution": {
+      "taskSupport": "forbidden",
+    },
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "accountId": {
+          "description": "UUID of the Perch account. Get this from list_accounts.",
+          "format": "uuid",
+          "type": "string",
+        },
+        "includeEnded": {
+          "description": "Include series whose end_date has passed or whose count is exhausted. Defaults to false.",
+          "type": "boolean",
+        },
+      },
+      "required": [
+        "accountId",
+      ],
+      "type": "object",
+    },
+    "name": "list_recurring_series",
+    "title": "List recurring payments and income on a Perch account",
+  },
+  {
+    "_meta": undefined,
+    "annotations": undefined,
+    "description": "List the actual upcoming occurrences (with concrete dates and amounts) on a Perch account over a date window. This expands recurring series into individual events and applies any overrides (skips, reschedules, amount changes). Prefer this over list_recurring_series whenever the user asks "what's coming up", "what bills are due", or anything date-specific — list_recurring_series only gives templates, this gives concrete dates. Amounts are signed: negative for expenses, positive for income/refunds. Each item carries isPaid plus paidAt — the ISO-8601 timestamp of when the user marked that occurrence paid (null when unpaid). Use paidAt to answer "when did I last pay / mark paid <series>?". Call list_accounts first if you don't already know the accountId. Requires the \`read:schedule\` scope. Read-only.",
+    "execution": {
+      "taskSupport": "forbidden",
+    },
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "accountId": {
+          "description": "UUID of the Perch account. Get this from list_accounts.",
+          "format": "uuid",
+          "type": "string",
+        },
+        "from": {
+          "description": "Start of the window (inclusive), YYYY-MM-DD. Defaults to today.",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "type": "string",
+        },
+        "limit": {
+          "description": "Maximum items returned. Defaults to 100, max 500.",
+          "maximum": 500,
+          "minimum": 1,
+          "type": "integer",
+        },
+        "to": {
+          "description": "End of the window (inclusive), YYYY-MM-DD. Defaults to from + 60 days. Window must be ≤ 365 days.",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "type": "string",
+        },
+      },
+      "required": [
+        "accountId",
+      ],
+      "type": "object",
+    },
+    "name": "list_scheduled_items",
+    "title": "List upcoming scheduled items on a Perch account",
+  },
+  {
+    "_meta": undefined,
+    "annotations": undefined,
+    "description": "Re-run the balance projection with caller-supplied hypothetical items merged into the schedule. Use this when the user asks "what if I add", "what would happen if", "could I afford", or any what-if question about future balance. Hypothetical items are NOT persisted — this is a pure compute, the user's real schedule is unchanged. Each hypothetical needs an occursOn date (YYYY-MM-DD), a signed amount as a decimal string (negative for expenses like "-500.00", positive for income like "1200.00"), and a description. Call list_accounts first if you don't already know the accountId. Requires the \`read:forecast\` scope. Read-only.",
+    "execution": {
+      "taskSupport": "forbidden",
+    },
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "accountId": {
+          "description": "UUID of the Perch account.",
+          "format": "uuid",
+          "type": "string",
+        },
+        "days": {
+          "description": "How many days forward to project from today. Default 30, max 365.",
+          "maximum": 365,
+          "minimum": 1,
+          "type": "integer",
+        },
+        "granularity": {
+          "description": ""daily" for plot-ready contiguous points, "event" for sparse output. Default "daily".",
+          "enum": [
+            "daily",
+            "event",
+          ],
+          "type": "string",
+        },
+        "hypotheticalItems": {
+          "description": "Non-empty list of hypothetical items to merge into the projection. Up to 50.",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "amount": {
+                "description": "Signed amount as a decimal string. Negative for expense ("-500.00"), positive for income ("1200.00").",
+                "pattern": "^-?\\d+(\\.\\d{1,2})?$",
+                "type": "string",
+              },
+              "description": {
+                "description": "Short label, e.g. "Surprise dental bill", "Bonus".",
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string",
+              },
+              "occursOn": {
+                "description": "Date the hypothetical item occurs.",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "type": "string",
+              },
+            },
+            "required": [
+              "occursOn",
+              "amount",
+              "description",
+            ],
+            "type": "object",
+          },
+          "maxItems": 50,
+          "minItems": 1,
+          "type": "array",
+        },
+      },
+      "required": [
+        "accountId",
+        "hypotheticalItems",
+      ],
+      "type": "object",
+    },
+    "name": "simulate_forecast",
+    "title": "Simulate the forecast with hypothetical items (what-if)",
+  },
+]
+`;
