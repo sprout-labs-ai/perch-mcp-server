@@ -33,7 +33,7 @@ services:
       - key: HOST
         value: 0.0.0.0
       - key: NODE_VERSION
-        value: "20"
+        value: "24"
       # Per-tenant / per-env — set in the dashboard (never committed):
       - key: HYDRA_ISSUER           # e.g. https://mcp-auth-staging.theperch.app
         sync: false
@@ -65,7 +65,7 @@ services:
       - key: HOST
         value: 0.0.0.0
       - key: NODE_VERSION
-        value: "20"
+        value: "24"
       - key: HYDRA_ISSUER           # https://mcp-auth.theperch.app
         sync: false
       - key: MCP_AUDIENCE           # https://mcp.theperch.app
