@@ -22,7 +22,7 @@ export function registerGetForecastCurve(server: McpServer): void {
       inputSchema: {
         accountId: z
           .string()
-          .uuid()
+          .guid()
           .describe('UUID of the Perch account.'),
         days: z
           .number()

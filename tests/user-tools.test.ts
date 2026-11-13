@@ -154,6 +154,24 @@ describe('list_recurring_series', () => {
     expect(body.count).toBe(3);
   });
 
+  it('accepts any 8-4-4-4-12 hex id, not only RFC 4122 versioned UUIDs', async () => {
+    // zod 4's `.uuid()` would reject these (version/variant digits); seeded
+    // and legacy ids look like this, so the tools validate with `.guid()`.
+    for (const id of ['00000000-0000-0000-0000-000000000001', 'abcdefab-abcd-abcd-abcd-abcdefabcdef']) {
+      mockPerchApi({ [`GET /api/v1/accounts/${id}/series`]: () => json([]) });
+      const result = await callTool('list_recurring_series', { accountId: id });
+      expect(result.isError, id).toBeFalsy();
+      vi.restoreAllMocks();
+    }
+  });
+
+  it('ignores unknown arguments instead of rejecting the call', async () => {
+    const { requests } = mockPerchApi({ [`GET /api/v1/accounts/${ACCOUNT_ID}/series`]: () => json(series) });
+    const result = await callTool('list_recurring_series', { accountId: ACCOUNT_ID, bogus: 'x' });
+    expect(result.isError).toBeFalsy();
+    expect(requests[0].url.search).toBe('');
+  });
+
   it('rejects a non-UUID accountId before calling perch-api', async () => {
     const { requests } = mockPerchApi({});
     await expectInvalidArgs('list_recurring_series', { accountId: 'not-a-uuid' });

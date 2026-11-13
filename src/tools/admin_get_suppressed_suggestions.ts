@@ -14,7 +14,7 @@ export function registerAdminGetSuppressedSuggestions(server: McpServer): void {
         'or to audit a user\'s dismissed suggestions. ' +
         'Requires the MCP client to hold the `suppressed_suggestions:read` scope. Read-only.',
       inputSchema: {
-        user_id: z.string().uuid().describe('Internal Perch user UUID.'),
+        user_id: z.string().guid().describe('Internal Perch user UUID.'),
         kind: z
           .enum(['recurring', 'plaid_candidate', 'all'])
           .optional()

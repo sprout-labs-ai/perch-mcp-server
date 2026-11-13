@@ -197,6 +197,22 @@ describe('JwksVerifier.verifyAccessToken — rejection cases', () => {
   });
 });
 
+describe('JwksVerifier — client id resolution', () => {
+  it('falls back to client_id when azp is absent', async () => {
+    const claims = basicClaims({ client_id: 'legacy-client' });
+    delete claims.azp;
+    const info = await makeVerifier().verifyAccessToken(signToken(claims));
+    expect(info.clientId).toBe('legacy-client');
+  });
+
+  it('uses an empty client id (no activity attribution) when neither claim is present', async () => {
+    const claims = basicClaims();
+    delete claims.azp;
+    const info = await makeVerifier().verifyAccessToken(signToken(claims));
+    expect(info.clientId).toBe('');
+  });
+});
+
 describe('JwksVerifier — domain-move grace period', () => {
   const LEGACY_ISSUER = 'https://mcp-auth.legacy.test';
   const LEGACY_AUDIENCE = 'https://mcp.legacy.test';

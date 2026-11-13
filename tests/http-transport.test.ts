@@ -115,6 +115,39 @@ describe('GET /.well-known/oauth-protected-resource', () => {
 });
 
 // ──────────────────────────────────────────────────────────────────────────────
+// Authorization Server Metadata shim (RFC 8414 / OIDC discovery)
+//
+// Hydra doesn't advertise Dynamic Client Registration, so without this shim
+// Claude hangs at "checking connection". Both well-known paths must serve it.
+
+describe.each([
+  '/.well-known/oauth-authorization-server',
+  '/.well-known/openid-configuration',
+])('GET %s', (path) => {
+  it('serves self-issued metadata whose endpoints (incl. DCR) point at Hydra', async () => {
+    const res = await fetch(`${baseUrl}${path}`);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    // Self-consistent per RFC 8414: issuer = this server, which the PRM lists.
+    expect(body.issuer).toBe(PUBLIC_URL);
+    expect(body.authorization_endpoint).toBe(`${ISSUER}/oauth2/auth`);
+    expect(body.token_endpoint).toBe(`${ISSUER}/oauth2/token`);
+    expect(body.registration_endpoint).toBe(`${ISSUER}/oauth2/register`);
+    expect(body.jwks_uri).toBe(`${ISSUER}/.well-known/jwks.json`);
+    expect(body.code_challenge_methods_supported).toEqual(['S256']);
+    expect(body.grant_types_supported).toEqual(['authorization_code', 'refresh_token']);
+    expect(body.scopes_supported).toEqual([
+      'openid',
+      'offline_access',
+      'read:accounts',
+      'read:series',
+      'read:schedule',
+      'read:forecast',
+    ]);
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────────────────
 // /mcp auth surface
 
 describe('POST /mcp authentication', () => {
