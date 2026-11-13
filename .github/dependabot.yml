@@ -1,0 +1,37 @@
+# Monthly dependency updates, modeled on perch-api's .github/dependabot.yml.
+#
+# Security updates (for advisories) are separate: they arrive immediately once
+# "Dependabot security updates" is enabled in Settings → Code security, and
+# are not limited by the schedule or PR limit below.
+#
+# CI (.github/workflows/ci.yml) runs on every PR here, so Dependabot PRs get
+# typecheck, tests with coverage thresholds, the tool-schema snapshot and a
+# build without needing a label. CodeRabbit skips Dependabot's PRs
+# (.coderabbit.yaml, ignore_usernames).
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    groups:
+      # One PR for routine minor/patch bumps; majors stay separate so each
+      # breaking upgrade (e.g. zod, the MCP SDK) is reviewed on its own. A
+      # change to what tools accept or advertise fails the tools/list snapshot.
+      minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      # Types must match the Node we run in production (render.yaml
+      # NODE_VERSION, .nvmrc). Move them together, deliberately, to the next
+      # LTS — not to whatever major was released last.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ['*']
