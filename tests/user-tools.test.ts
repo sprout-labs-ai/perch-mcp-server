@@ -215,8 +215,40 @@ describe('list_scheduled_items', () => {
 
     expect(body.window).toEqual({ from: '2026-11-01', to: '2026-11-30' });
     expect(body.count).toBe(4);
-    expect(body.netForWindow).toBe('2383.71');
+    // The paid paycheck is excluded from the net: -15.99 - 0.10 - 0.20.
+    expect(body.netForWindow).toBe('-16.29');
     expect(body.items[1].paidAt).toBe('2026-11-15T12:00:00Z');
+  });
+
+  it('keeps paid items in the list but excludes them from the net', async () => {
+    mockPerchApi({
+      'GET /api/v1/scheduled-items': () => json({
+        ...response,
+        items: [
+          { seriesId: 's1', occursOn: '2026-11-03', amount: '-1200.00', description: 'Rent',
+            direction: 'expense', frequency: 'monthly', isPaid: true, paidAt: '2026-11-02T09:00:00Z', isRescheduled: false },
+          { seriesId: 's2', occursOn: '2026-11-10', amount: '-50.25', description: 'Electric',
+            direction: 'expense', frequency: 'monthly', isPaid: false, paidAt: null, isRescheduled: false },
+        ],
+      }),
+    });
+    const body = parseToolText(await callTool('list_scheduled_items', { accountId: ACCOUNT_ID }));
+    expect(body.count).toBe(2);
+    expect(body.items.map((i: { description: string }) => i.description)).toEqual(['Rent', 'Electric']);
+    expect(body.items[0].isPaid).toBe(true);
+    expect(body.netForWindow).toBe('-50.25');
+  });
+
+  it('reports a zero net when every item in the window is paid', async () => {
+    mockPerchApi({
+      'GET /api/v1/scheduled-items': () => json({
+        ...response,
+        items: response.items.map((i) => ({ ...i, isPaid: true, paidAt: '2026-11-01T00:00:00Z' })),
+      }),
+    });
+    const body = parseToolText(await callTool('list_scheduled_items', { accountId: ACCOUNT_ID }));
+    expect(body.count).toBe(4);
+    expect(body.netForWindow).toBe('0.00');
   });
 
   it('omits unset optional params from the query string', async () => {
