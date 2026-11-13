@@ -22,8 +22,8 @@ updates:
       minor-and-patch:
         update-types: [minor, patch]
     ignore:
-      # Types must match the Node we run in production (render.yaml
-      # NODE_VERSION, .nvmrc). Move them together, deliberately, to the next
+      # Types must match the Node we run in production (.nvmrc, which both
+      # Render services build with). Move them together, deliberately, to the next
       # LTS — not to whatever major was released last.
       - dependency-name: '@types/node'
         update-types: ['version-update:semver-major']
