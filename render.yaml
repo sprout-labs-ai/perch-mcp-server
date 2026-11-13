@@ -1,29 +1,41 @@
-# Render Blueprint for the Perch MCP server (HTTP mode).
+# Render services for the Perch MCP server (HTTP mode).
+#
+# ⚠ Reference only — Render does NOT read this file. Both services were
+# created in the Render dashboard and are not synced to a Blueprint, so
+# editing this file changes nothing in production or staging. Change a
+# setting in the dashboard first, then mirror it here so this stays an
+# accurate description of what is running. (Last checked against the live
+# services: 2026-11-13.)
 #
 # The MCP server runs as a long-lived Express service (stateless POST /mcp),
-# proxying Hydra-issued tokens through to perch-api. It lives alongside
-# perch-api on Render (not Vercel — the mcp-*.theperch.app DNS must be repointed
-# off Vercel to the Render service domain).
+# proxying Hydra-issued tokens through to perch-api.
 #
-# One service per environment, each tracking its branch:
-#   - perch-mcp-staging   ← branch `staging`   → mcp-staging.theperch.app
-#   - perch-mcp-prod      ← branch `main`      → mcp.theperch.app
-# (dev is normally run locally with `--http`; a perch-mcp-dev service can be
-#  added the same way, tracking `staging`, pointed at mcp-dev.theperch.app +
-#  the dev Hydra issuer.)
+# Both services track `main`:
+#   - perch-mcp-server-staging  auto-deploys every commit to `main`
+#   - perch-mcp-server          production; auto-deploy OFF — deploy manually
+#                               from the dashboard (Manual Deploy → latest commit)
+#                               once the commit has been verified on staging.
 #
-# Env-specific values (Hydra issuer, MCP audience, public URL, upstream
-# API URL, allowed hosts) are marked `sync: false` and set per-service in the
-# Render dashboard so one blueprint serves every environment without leaking
-# config between tenants.
+# Node version comes from `.nvmrc` (Render's precedence is NODE_VERSION env
+# var > .node-version > .nvmrc > package.json engines). Neither service sets
+# NODE_VERSION, so bump `.nvmrc` to move both. Check the build log line
+# "Using Node.js version … via …" to confirm what a deploy used.
+#
+# Env-specific values (Hydra issuer, MCP audience, public URL, upstream API
+# URL, allowed hosts) are `sync: false`: set per service in the dashboard,
+# never committed.
 
 services:
   - type: web
-    name: perch-mcp-staging
+    name: perch-mcp-server-staging
     runtime: node
     plan: starter
-    branch: staging
-    buildCommand: npm ci && npm run build
+    region: ohio
+    branch: main
+    # As configured in the dashboard. `npm ci && npm run build` would be
+    # stricter (fails on a lockfile mismatch or install error instead of
+    # building anyway); change it in the dashboard first if adopting it.
+    buildCommand: npm install; npm run build
     startCommand: node dist/index.js --http
     healthCheckPath: /health
     autoDeploy: true
@@ -32,9 +44,7 @@ services:
         value: http
       - key: HOST
         value: 0.0.0.0
-      - key: NODE_VERSION
-        value: "24"
-      # Per-tenant / per-env — set in the dashboard (never committed):
+      # Per-env — set in the dashboard (never committed):
       - key: HYDRA_ISSUER           # e.g. https://mcp-auth-staging.theperch.app
         sync: false
       - key: MCP_AUDIENCE           # e.g. https://mcp-staging.theperch.app
@@ -43,36 +53,39 @@ services:
         sync: false
       - key: MCP_LEGACY_AUDIENCE    # optional, domain-move grace period only
         sync: false
-      - key: PERCH_MCP_PUBLIC_URL    # e.g. https://mcp-staging.theperch.app
+      - key: PERCH_MCP_PUBLIC_URL   # e.g. https://mcp-staging.theperch.app
         sync: false
-      - key: PERCH_API_URL           # e.g. https://api-staging.theperch.app
+      - key: PERCH_API_URL          # e.g. https://api-staging.theperch.app
         sync: false
-      - key: ALLOWED_HOSTS           # e.g. mcp-staging.theperch.app
+      - key: ALLOWED_HOSTS          # e.g. mcp-staging.theperch.app
         sync: false
 
   - type: web
-    name: perch-mcp-prod
+    name: perch-mcp-server
     runtime: node
     plan: starter
+    region: ohio
     branch: main
-    buildCommand: npm ci && npm run build
+    buildCommand: npm install; npm run build
     startCommand: node dist/index.js --http
     healthCheckPath: /health
-    autoDeploy: true
+    autoDeploy: false
     envVars:
       - key: PERCH_MCP_TRANSPORT
         value: http
       - key: HOST
         value: 0.0.0.0
-      - key: NODE_VERSION
-        value: "24"
       - key: HYDRA_ISSUER           # https://mcp-auth.theperch.app
         sync: false
       - key: MCP_AUDIENCE           # https://mcp.theperch.app
         sync: false
-      - key: PERCH_MCP_PUBLIC_URL    # https://mcp.theperch.app
+      - key: HYDRA_LEGACY_ISSUER    # optional, domain-move grace period only
         sync: false
-      - key: PERCH_API_URL           # https://api.theperch.app
+      - key: MCP_LEGACY_AUDIENCE    # optional, domain-move grace period only
         sync: false
-      - key: ALLOWED_HOSTS           # mcp.theperch.app
+      - key: PERCH_MCP_PUBLIC_URL   # https://mcp.theperch.app
+        sync: false
+      - key: PERCH_API_URL          # https://api.theperch.app
+        sync: false
+      - key: ALLOWED_HOSTS          # mcp.theperch.app
         sync: false
