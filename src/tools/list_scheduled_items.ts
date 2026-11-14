@@ -19,6 +19,8 @@ export function registerListScheduledItems(server: McpServer): void {
         'Each item carries isPaid plus paidAt — the ISO-8601 timestamp of when the user ' +
         'marked that occurrence paid (null when unpaid). Use paidAt to answer "when did I ' +
         'last pay / mark paid <series>?". ' +
+        'The response also includes netForWindow: the signed sum of the UNPAID items only — ' +
+        'paid occurrences are already settled, so they are listed but excluded from the net. ' +
         "Call list_accounts first if you don't already know the accountId. " +
         'Requires the `read:schedule` scope. Read-only.',
       inputSchema: {
@@ -54,10 +56,12 @@ export function registerListScheduledItems(server: McpServer): void {
       // Light shaping for the LLM: items are already sorted by occursOn
       // server-side. Add a small computed summary so the model doesn't have
       // to re-do the math just to answer "what's the net for this window".
-      const netCents = data.items.reduce(
-        (sum, i) => sum + Math.round(parseFloat(i.amount) * 100),
-        0,
-      );
+      // Paid occurrences are already settled, so they stay in `items` (the
+      // model uses paidAt for "when did I last mark this paid") but must not
+      // count toward the upcoming net.
+      const netCents = data.items
+        .filter((i) => !i.isPaid)
+        .reduce((sum, i) => sum + Math.round(parseFloat(i.amount) * 100), 0);
 
       const summary = {
         accountId: data.accountId,
